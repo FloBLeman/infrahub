@@ -204,6 +204,13 @@ UPDATE_GRAPHQL_QUERY_GROUP = WorkflowDefinition(
     branch_support=BranchSupportType.AWARE,
 )
 
+PROCESS_COMPUTED_MACRO = WorkflowDefinition(
+    name="process_computed_macro",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.process.computed_attribute.tasks",
+    function="process_macro",
+)
+
 worker_pools = [INFRAHUB_WORKER_POOL]
 
 workflows = [
@@ -232,4 +239,5 @@ workflows = [
     REQUEST_GENERATOR_DEFINITION_RUN,
     UPDATE_GRAPHQL_QUERY_GROUP,
     GIT_REPOSITORY_ADD,
+    PROCESS_COMPUTED_MACRO,
 ]
