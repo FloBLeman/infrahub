@@ -97,7 +97,6 @@ export const MENU_EXCLUDELIST = [
   "CoreArtifactValidator",
   "CoreUserValidator",
   "CoreValidator",
-  "InfrahubAccountToken",
   "LineageOwner",
   "LineageSource",
 ];
