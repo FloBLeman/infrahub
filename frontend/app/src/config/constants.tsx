@@ -87,6 +87,8 @@ export const MENU_EXCLUDELIST = [
   "CoreDataValidator",
   "CoreRepositoryValidator",
   "CoreArtifactValidator",
+  "LineageOwner",
+  "LineageSource",
 ];
 
 export const NODE_PATH_EXCLUDELIST = ["property"];
