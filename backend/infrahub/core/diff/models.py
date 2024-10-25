@@ -1,9 +1,7 @@
-from pydantic import Field
-
-from infrahub.message_bus import InfrahubMessage
+from pydantic import BaseModel, Field
 
 
-class RequestDiffUpdate(InfrahubMessage):
+class RequestDiffUpdate(BaseModel):
     """
     Request diff to be updated.
 

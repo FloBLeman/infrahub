@@ -92,6 +92,13 @@ REQUEST_ARTIFACT_DEFINITION_GENERATE = WorkflowDefinition(
     function="generate_request_artifact_definition",
 )
 
+REQUEST_DIFF_UPDATE = WorkflowDefinition(
+    name="diff-update",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.core.diff.tasks",
+    function="update_diff",
+)
+
 GIT_REPOSITORIES_SYNC = WorkflowDefinition(
     name="git_repositories_sync",
     type=WorkflowType.INTERNAL,
@@ -144,4 +151,5 @@ workflows = [
     BRANCH_MERGE,
     REQUEST_ARTIFACT_DEFINITION_GENERATE,
     REQUEST_GENERATOR_RUN,
+    REQUEST_DIFF_UPDATE,
 ]

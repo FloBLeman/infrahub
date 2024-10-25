@@ -4,6 +4,7 @@ from prefect import flow
 
 from infrahub.core import registry
 from infrahub.core.diff.model.path import BranchTrackingId
+from infrahub.core.diff.models import RequestDiffUpdate
 from infrahub.core.diff.repository.repository import DiffRepository
 from infrahub.dependencies.registry import get_component_registry
 from infrahub.log import get_logger
@@ -11,6 +12,7 @@ from infrahub.message_bus import InfrahubMessage, messages
 from infrahub.services import InfrahubServices
 from infrahub.workflows.catalogue import (
     GIT_REPOSITORIES_CREATE_BRANCH,
+    REQUEST_DIFF_UPDATE,
     TRIGGER_ARTIFACT_DEFINITION_GENERATE,
 )
 
@@ -72,7 +74,10 @@ async def merge(message: messages.EventBranchMerge, service: InfrahubServices) -
             and diff_root.tracking_id
             and isinstance(diff_root.tracking_id, BranchTrackingId)
         ):
-            events.append(messages.RequestDiffUpdate(branch_name=diff_root.diff_branch_name))
+            request_diff_update_model = RequestDiffUpdate(branch_name=diff_root.diff_branch_name)
+            await service.workflow.submit_workflow(
+                workflow=REQUEST_DIFF_UPDATE, parameters={"model": request_diff_update_model}
+            )
 
     for event in events:
         event.assign_meta(parent=message)
