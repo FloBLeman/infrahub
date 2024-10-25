@@ -95,7 +95,7 @@ REQUEST_ARTIFACT_DEFINITION_GENERATE = WorkflowDefinition(
 GIT_REPOSITORIES_SYNC = WorkflowDefinition(
     name="git_repositories_sync",
     type=WorkflowType.INTERNAL,
-    cron="*/10 * * * *",
+    cron="* * * * *",
     module="infrahub.git.tasks",
     function="sync_remote_repositories",
 )
