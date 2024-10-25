@@ -128,6 +128,7 @@ def status(context: Context, database: str = INFRAHUB_DATABASE) -> None:
 def load_infra_schema(context: Context, database: str = INFRAHUB_DATABASE) -> None:
     """Load the base schema for infrastructure."""
     load_infrastructure_schema(context=context, database=database, namespace=NAMESPACE, add_wait=False)
+    load_infrastructure_menu(context=context, database=database, namespace=NAMESPACE)
     restart_services(context=context, database=database, namespace=NAMESPACE)
 
 
