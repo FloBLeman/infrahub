@@ -532,18 +532,31 @@ class SecuritySettings(BaseSettings):
         default_factory=generate_uuid, description="The secret key used to validate authentication tokens"
     )
     oauth2_providers: list[Oauth2Provider] = Field(default_factory=list, description="The selected OAuth2 providers")
+    oauth2_provider_settings: dict[str, SecurityOAuth2Settings] = Field(
+        default_factory=dict, description="OAuth2 provider specific settings"
+    )
     oidc_providers: list[OIDCProvider] = Field(default_factory=list, description="The selected OIDC providers")
+    oidc_provider_settings: dict[str, SecurityOIDCSettings] = Field(
+        default_factory=dict, description="OIDC provider specific settings"
+    )
     _oauth2_settings: dict[str, SecurityOAuth2Settings] = PrivateAttr(default_factory=dict)
     _oidc_settings: dict[str, SecurityOIDCSettings] = PrivateAttr(default_factory=dict)
 
     @model_validator(mode="after")
     def check_oauth2_provider_settings(self) -> Self:
+        for key, value in self.oauth2_provider_settings.items():
+            self._oauth2_settings[key] = value
+
         mapped_providers: dict[Oauth2Provider, type[SecurityOAuth2BaseSettings]] = {
             Oauth2Provider.PROVIDER1: SecurityOAuth2Provider1,
             Oauth2Provider.PROVIDER2: SecurityOAuth2Provider2,
             Oauth2Provider.GOOGLE: SecurityOAuth2Google,
         }
         for oauth2_provider in self.oauth2_providers:
+            if oauth2_provider in self._oauth2_settings:
+                # Don't try to load the provider using environment variables if it has
+                # already been loaded using a toml file (or environment variables in dict format)
+                continue
             provider = mapped_providers[oauth2_provider]()
             if isinstance(provider, SecurityOAuth2Settings):
                 self._oauth2_settings[oauth2_provider.value] = provider
@@ -552,12 +565,19 @@ class SecuritySettings(BaseSettings):
 
     @model_validator(mode="after")
     def check_oidc_provider_settings(self) -> Self:
+        for key, value in self.oidc_provider_settings.items():
+            self._oidc_settings[key] = value
+
         mapped_providers: dict[OIDCProvider, type[SecurityOIDCBaseSettings]] = {
             OIDCProvider.GOOGLE: SecurityOIDCGoogle,
             OIDCProvider.PROVIDER1: SecurityOIDCProvider1,
             OIDCProvider.PROVIDER2: SecurityOIDCProvider2,
         }
         for oidc_provider in self.oidc_providers:
+            if oidc_provider in self._oidc_settings:
+                # Don't try to load the provider using environment variables if it has
+                # already been loaded using a toml file (or environment variables in dict format)
+                continue
             provider = mapped_providers[oidc_provider]()
             if isinstance(provider, SecurityOIDCSettings):
                 self._oidc_settings[oidc_provider.value] = provider
