@@ -56,7 +56,7 @@ export const getObjectDetailsUrl2 = (
     }
 
     if (inheritFrom?.includes(RESOURCE_GENERIC_KIND)) {
-      return constructPathForIpam(`/resource-manager/${objectId}`, overrideParams);
+      return constructPathForIpam(`/resource-manager/${objectId ?? ""}`, overrideParams);
     }
   }
 
