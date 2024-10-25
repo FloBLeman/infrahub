@@ -8,9 +8,9 @@ INFRAHUB_WORKER_POOL = WorkerPoolDefinition(
 )
 
 WEBHOOK_SEND = WorkflowDefinition(
-    name="webhook_send",
+    name="event-send-webhook",
     type=WorkflowType.USER,
-    module="infrahub.message_bus.operations.send.webhook",
+    module="infrahub.send.webhook",
     function="send_webhook",
 )
 
