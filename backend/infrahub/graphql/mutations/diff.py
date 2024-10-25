@@ -5,10 +5,9 @@ from graphql import GraphQLResolveInfo
 
 from infrahub.core import registry
 from infrahub.core.diff.coordinator import DiffCoordinator
+from infrahub.core.diff.models import RequestDiffUpdate
 from infrahub.dependencies.registry import get_component_registry
-
-from ...core.diff.models import RequestDiffUpdate
-from ...workflows.catalogue import REQUEST_DIFF_UPDATE
+from infrahub.workflows.catalogue import REQUEST_DIFF_UPDATE
 
 if TYPE_CHECKING:
     from ..initialization import GraphqlContext

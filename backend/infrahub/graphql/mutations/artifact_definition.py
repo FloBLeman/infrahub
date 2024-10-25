@@ -6,10 +6,10 @@ from graphene import InputObjectType, Mutation
 from typing_extensions import Self
 
 from infrahub.core.schema import NodeSchema
+from infrahub.git.models import RequestArtifactDefinitionGenerate
 from infrahub.log import get_logger
+from infrahub.workflows.catalogue import REQUEST_ARTIFACT_DEFINITION_GENERATE
 
-from ...git.models import RequestArtifactDefinitionGenerate
-from ...workflows.catalogue import REQUEST_ARTIFACT_DEFINITION_GENERATE
 from .main import InfrahubMutationMixin, InfrahubMutationOptions
 
 if TYPE_CHECKING:

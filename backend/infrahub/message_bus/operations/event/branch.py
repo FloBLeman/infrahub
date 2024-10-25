@@ -4,7 +4,7 @@ from prefect import flow
 
 from infrahub.core import registry
 from infrahub.core.diff.model.path import BranchTrackingId
-from infrahub.core.diff.models import RequestDiffUpdate
+from infrahub.core.diff.models import RequestDiffRefresh, RequestDiffUpdate
 from infrahub.core.diff.repository.repository import DiffRepository
 from infrahub.dependencies.registry import get_component_registry
 from infrahub.log import get_logger
@@ -12,6 +12,7 @@ from infrahub.message_bus import InfrahubMessage, messages
 from infrahub.services import InfrahubServices
 from infrahub.workflows.catalogue import (
     GIT_REPOSITORIES_CREATE_BRANCH,
+    REQUEST_DIFF_REFRESH,
     REQUEST_DIFF_UPDATE,
     TRIGGER_ARTIFACT_DEFINITION_GENERATE,
 )
@@ -100,7 +101,12 @@ async def rebased(message: messages.EventBranchRebased, service: InfrahubService
 
     for diff_root in diff_roots_to_refresh:
         if diff_root.base_branch_name != diff_root.diff_branch_name:
-            events.append(messages.RequestDiffRefresh(branch_name=diff_root.diff_branch_name, diff_id=diff_root.uuid))
+            request_diff_refresh_model = RequestDiffRefresh(
+                branch_name=diff_root.diff_branch_name, diff_id=diff_root.uuid
+            )
+            await service.workflow.submit_workflow(
+                workflow=REQUEST_DIFF_REFRESH, parameters={"model": request_diff_refresh_model}
+            )
 
     for event in events:
         event.assign_meta(parent=message)

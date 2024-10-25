@@ -44,7 +44,6 @@ COMMAND_MAP = {
     "refresh.registry.branches": refresh.registry.branches,
     "refresh.registry.rebased_branch": refresh.registry.rebased_branch,
     "refresh.webhook.configuration": refresh.webhook.configuration,
-    "request.diff.refresh": requests.diff.refresh,
     "request.generator_definition.check": requests.generator_definition.check,
     "request.generator_definition.run": requests.generator_definition.run,
     "request.graphql_query_group.update": requests.graphql_query_group.update,

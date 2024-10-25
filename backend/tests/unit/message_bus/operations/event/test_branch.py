@@ -5,7 +5,7 @@ import pytest
 
 from infrahub.core.branch import Branch
 from infrahub.core.diff.model.path import BranchTrackingId, EnrichedDiffRoot
-from infrahub.core.diff.models import RequestDiffUpdate
+from infrahub.core.diff.models import RequestDiffRefresh, RequestDiffUpdate
 from infrahub.core.diff.repository.repository import DiffRepository
 from infrahub.core.timestamp import Timestamp
 from infrahub.dependencies.component.registry import ComponentDependencyRegistry
@@ -13,7 +13,7 @@ from infrahub.message_bus import messages
 from infrahub.message_bus.operations.event.branch import delete, merge, rebased
 from infrahub.services import InfrahubServices, services
 from infrahub.services.adapters.workflow.local import WorkflowLocalExecution
-from infrahub.workflows.catalogue import REQUEST_DIFF_UPDATE, TRIGGER_ARTIFACT_DEFINITION_GENERATE
+from infrahub.workflows.catalogue import REQUEST_DIFF_REFRESH, REQUEST_DIFF_UPDATE, TRIGGER_ARTIFACT_DEFINITION_GENERATE
 from tests.adapters.message_bus import BusRecorder
 
 
@@ -131,7 +131,7 @@ async def test_rebased(default_branch: Branch, prefect_test_fixture):
 
     recorder = BusRecorder()
     database = MagicMock()
-    service = InfrahubServices(message_bus=recorder, database=database)
+    service = InfrahubServices(message_bus=recorder, database=database, workflow=WorkflowLocalExecution())
     diff_roots = [
         EnrichedDiffRoot(
             base_branch_name="main",
@@ -149,14 +149,30 @@ async def test_rebased(default_branch: Branch, prefect_test_fixture):
     mock_get_component_registry = MagicMock(return_value=mock_component_registry)
     mock_component_registry.get_component.return_value = diff_repo
 
-    with patch("infrahub.message_bus.operations.event.branch.get_component_registry", new=mock_get_component_registry):
+    with (
+        patch("infrahub.message_bus.operations.event.branch.get_component_registry", new=mock_get_component_registry),
+        patch(
+            "infrahub.services.adapters.workflow.local.WorkflowLocalExecution.submit_workflow"
+        ) as mock_submit_workflow,
+    ):
         await rebased(message=message, service=service)
+
+        expected_calls = [
+            call(
+                workflow=REQUEST_DIFF_REFRESH,
+                parameters={"model": RequestDiffRefresh(branch_name=branch_name, diff_id=diff_roots[0].uuid)},
+            ),
+            call(
+                workflow=REQUEST_DIFF_REFRESH,
+                parameters={"model": RequestDiffRefresh(branch_name=branch_name, diff_id=diff_roots[1].uuid)},
+            ),
+        ]
+        mock_submit_workflow.assert_has_calls(expected_calls)
+        assert mock_submit_workflow.call_count == len(expected_calls)
 
     mock_component_registry.get_component.assert_awaited_once_with(DiffRepository, db=database, branch=default_branch)
     diff_repo.get_empty_roots.assert_awaited_once_with(diff_branch_names=[branch_name])
-    assert len(recorder.messages) == 3
+    assert len(recorder.messages) == 1
     assert isinstance(recorder.messages[0], messages.RefreshRegistryRebasedBranch)
     refresh_message: messages.RefreshRegistryRebasedBranch = recorder.messages[0]
     assert refresh_message.branch == "cr1234"
-    assert recorder.messages[1] == messages.RequestDiffRefresh(branch_name=branch_name, diff_id=diff_roots[0].uuid)
-    assert recorder.messages[2] == messages.RequestDiffRefresh(branch_name=branch_name, diff_id=diff_roots[1].uuid)

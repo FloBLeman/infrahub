@@ -99,6 +99,13 @@ REQUEST_DIFF_UPDATE = WorkflowDefinition(
     function="update_diff",
 )
 
+REQUEST_DIFF_REFRESH = WorkflowDefinition(
+    name="diff-refresh",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.core.diff.tasks",
+    function="refresh_diff",
+)
+
 GIT_REPOSITORIES_SYNC = WorkflowDefinition(
     name="git_repositories_sync",
     type=WorkflowType.INTERNAL,
@@ -152,4 +159,5 @@ workflows = [
     REQUEST_ARTIFACT_DEFINITION_GENERATE,
     REQUEST_GENERATOR_RUN,
     REQUEST_DIFF_UPDATE,
+    REQUEST_DIFF_REFRESH,
 ]
