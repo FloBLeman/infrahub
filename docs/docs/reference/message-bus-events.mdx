@@ -587,46 +587,6 @@ For more detailed explanations on how to use these events within Infrahub, see t
 <!-- vale on -->
 
 <!-- vale off -->
-### Request Diff
-<!-- vale on -->
-
-<!-- vale off -->
-#### Event request.diff.update
-<!-- vale on -->
-
-**Description**: Request diff to be updated.
-
-    If the message only include a branch_name, it is assumed to be for updating the diff that tracks
-    the lifetime changes of a branch
-
-**Priority**: 3
-
-<!-- vale off -->
-| Key | Description | Type | Default Value |
-|-----|-------------|------|---------------|
-| **meta** | Meta properties for the message | N/A | None |
-| **branch_name** | The branch associated with the diff | string | None |
-| **name** | N/A | N/A | None |
-| **from_time** | N/A | N/A | None |
-| **to_time** | N/A | N/A | None |
-<!-- vale on -->
-<!-- vale off -->
-#### Event request.diff.refresh
-<!-- vale on -->
-
-**Description**: Request diff be recalculated from scratch.
-
-**Priority**: 3
-
-<!-- vale off -->
-| Key | Description | Type | Default Value |
-|-----|-------------|------|---------------|
-| **meta** | Meta properties for the message | N/A | None |
-| **branch_name** | The branch associated with the diff | string | None |
-| **diff_id** | The id for this diff | string | None |
-<!-- vale on -->
-
-<!-- vale off -->
 ### Request Generator Definition
 <!-- vale on -->
 
@@ -1558,48 +1518,6 @@ For more detailed explanations on how to use these events within Infrahub, see t
 | **source_branch** | The source branch | string | None |
 | **source_branch_sync_with_git** | Indicates if the source branch should sync with git | boolean | None |
 | **destination_branch** | The target branch | string | None |
-<!-- vale on -->
-
-<!-- vale off -->
-### Request Diff
-<!-- vale on -->
-
-<!-- vale off -->
-#### Event request.diff.update
-<!-- vale on -->
-
-**Description**: Request diff to be updated.
-
-    If the message only include a branch_name, it is assumed to be for updating the diff that tracks
-    the lifetime changes of a branch
-
-**Priority**: 3
-
-
-<!-- vale off -->
-| Key | Description | Type | Default Value |
-|-----|-------------|------|---------------|
-| **meta** | Meta properties for the message | N/A | None |
-| **branch_name** | The branch associated with the diff | string | None |
-| **name** | N/A | N/A | None |
-| **from_time** | N/A | N/A | None |
-| **to_time** | N/A | N/A | None |
-<!-- vale on -->
-<!-- vale off -->
-#### Event request.diff.refresh
-<!-- vale on -->
-
-**Description**: Request diff be recalculated from scratch.
-
-**Priority**: 3
-
-
-<!-- vale off -->
-| Key | Description | Type | Default Value |
-|-----|-------------|------|---------------|
-| **meta** | Meta properties for the message | N/A | None |
-| **branch_name** | The branch associated with the diff | string | None |
-| **diff_id** | The id for this diff | string | None |
 <!-- vale on -->
 
 <!-- vale off -->
