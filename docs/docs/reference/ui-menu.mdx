@@ -1,0 +1,36 @@
+---
+title: UI menu
+---
+
+DOCUMENT THE FILE FORMAT HERE
+
+```yaml
+---
+apiVersion: infrahub.app/v1
+kind: Menu
+spec:
+  data:
+    - namespace: Organization
+      name: MainMenu
+      label: Organization
+      icon: "mdi:domain"
+      children:
+        data:
+          - namespace: Organization
+            name: Manufacturer
+            label: Manufacturer
+            kind: OrganizationManufacturer
+            icon: "mdi:domain"
+
+          - namespace: Organization
+            name: Provider
+            label: Provider
+            kind: OrganizationProvider
+            icon: "mdi:domain"
+
+          - namespace: Organization
+            name: Tenant
+            label: Tenant
+            kind: OrganizationTenant
+            icon: "mdi:domain"
+```

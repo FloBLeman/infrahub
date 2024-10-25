@@ -1,0 +1,28 @@
+---
+title: Task worker
+---
+
+# Task worker
+
+Language: Python
+
+The Task worker is responsible for managing all the content related to the Git repositories. It organizes the file systems in order to quickly access any relevant commit. The Task worker periodically pulls the Git server for updates and listens to the RPC channel on the event bus for tasks to execute.
+
+Currently there are three types of tasks:
+
+- *Internal* tasks
+- *User* tasks
+- *Git* tasks
+
+Some of the tasks that can be executed on the Task worker include:
+
+- Rendering a Jinja template.
+- Rendering a transform function.
+- Executing a check.
+- All Git operations (pull/merge/diff).
+
+:::note
+
+Multiple instance of the Task worker can run at the same time to process more requests.
+
+:::

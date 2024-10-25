@@ -4,9 +4,13 @@ label: API Server
 
 # API server
 
-:::warning Under Construction
+Language: Python
 
-This page is still under construction and is not available yet.<br />
-Please reach out in Slack if you have some questions about the **API server**
+The API server delivers the REST API and the GraphQL endpoints.
+Internally, the API server is built with FastAPI as the web framework and Graphene to generate the GraphQL endpoints.
+
+:::note
+
+Multiple instance of the API Server can run at the same time to process more requests.
 
 :::

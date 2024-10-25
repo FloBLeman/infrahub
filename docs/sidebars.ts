@@ -112,6 +112,7 @@ const sidebars: SidebarsConfig = {
         'topics/resources-testing-framework',
         'topics/profiles',
         'topics/resource-manager',
+        'topics/ui-menu'
       ],
     },
     {
@@ -152,13 +153,14 @@ const sidebars: SidebarsConfig = {
             'reference/infrahub-cli/infrahub-server'
           ],
         },
-        'reference/configuration',
-        'reference/git-agent',
-        'reference/message-bus-events',
         'reference/api-server',
+        'reference/configuration',
+        'reference/message-bus-events',
         'reference/dotinfrahub',
         'reference/infrahub-tests',
-        'reference/schema-validation'
+        'reference/schema-validation',
+        'reference/task-worker',
+        'reference/ui-menu'
       ],
     },
     {
