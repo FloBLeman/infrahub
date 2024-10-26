@@ -117,7 +117,7 @@ jobs:
         with:
           submodules: true
       - name: "Setup environment"
-        run: "pip install ruff==0.6.6"
+        run: "pip install ruff==0.7.1"
       - name: "Linting: ruff check"
         run: "ruff check . --exclude python_sdk"
       - name: "Linting: ruff format"
