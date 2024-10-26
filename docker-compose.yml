@@ -220,7 +220,7 @@ services:
       INFRAHUB_INITIAL_AGENT_TOKEN: ${INFRAHUB_INITIAL_AGENT_TOKEN:-44af444d-3b26-410d-9546-b758657e026c}
       INFRAHUB_SECURITY_SECRET_KEY: ${INFRAHUB_SECURITY_SECRET_KEY:-327f747f-efac-42be-9e73-999f08f86b92"}
       INFRAHUB_WORKFLOW_PORT: ${INFRAHUB_WORKFLOW_PORT:-4200}
-      PREFECT_API_URL: http://task-manager:4200/api
+      PREFECT_API_URL: http://${INFRAHUB_WORKFLOW_ADDRESS:-task-manager}:${INFRAHUB_WORKFLOW_PORT:-4200}/api
     ports:
       - 8000:8000
     volumes:
@@ -257,7 +257,7 @@ services:
       INFRAHUB_WORKFLOW_ADDRESS: ${INFRAHUB_WORKFLOW_ADDRESS:-task-manager}
       INFRAHUB_TIMEOUT: ${INFRAHUB_TIMEOUT:-60}
       INFRAHUB_WORKFLOW_PORT: ${INFRAHUB_WORKFLOW_PORT:-4200}
-      PREFECT_API_URL: http://task-manager:4200/api
+      PREFECT_API_URL: http://${INFRAHUB_WORKFLOW_ADDRESS:-task-manager}:${INFRAHUB_WORKFLOW_PORT:-4200}/api
     volumes:
       - "git_data:/opt/infrahub/git"
       - "git_remote_data:/remote"
