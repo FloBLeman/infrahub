@@ -59,7 +59,7 @@ version: "1.0"
 nodes:
   - name: Device
     namespace: Network
-    default_filter: hostname__value
+    human_friendly_id: ["hostname__value"]
     attributes:
       - name: hostname
         kind: Text
@@ -149,7 +149,7 @@ version: "1.0"
 nodes:
   - name: Device
     namespace: Network
-    default_filter: hostname__value
+    human_friendly_id: ["hostname__value"]
     attributes:
       - name: hostname
         kind: Text
@@ -201,7 +201,7 @@ mutation {
           id
         }
   }
-  NetworkInterfaceCreate(data: {name: {value: "Ethernet1"}, description: {value: "WAN interface"}, device: {id: "atl1-edge1"} }) {
+  NetworkInterfaceCreate(data: {name: {value: "Ethernet1"}, description: {value: "WAN interface"}, device: {hfid: ["atl1-edge1"]}}) {
         ok
         object {
           id
@@ -251,7 +251,7 @@ generics:
 nodes:
   - name: Device
     namespace: Network
-    default_filter: hostname__value
+    human_friendly_id: ["hostname__value"]
     attributes:
       - name: hostname
         kind: Text
@@ -300,13 +300,13 @@ mutation {
           id
         }
   }
-  NetworkPhysicalInterfaceCreate(data: {name: {value: "Ethernet1"}, description: {value: "WAN interface"}, speed: {value: 1000000000}, device: {id: "atl1-edge1"}}) {
+  NetworkPhysicalInterfaceCreate(data: {name: {value: "Ethernet1"}, description: {value: "WAN interface"}, speed: {value: 1000000000}, device: {hfid: ["atl1-edge1"]}}) {
         ok
         object {
           id
         }
   }
-  NetworkLogicalInterfaceCreate(data: {name: {value: "Vlan1"}, description: {value: "SVI for Vlan 1"}, device: {id: "atl1-edge1"}}) {
+  NetworkLogicalInterfaceCreate(data: {name: {value: "Vlan1"}, description: {value: "SVI for Vlan 1"}, device: {hfid: ["atl1-edge1"]}}) {
         ok
         object {
           id
@@ -373,7 +373,7 @@ generics:
 nodes:
   - name: Device
     namespace: Network
-    default_filter: hostname__value
+    human_friendly_id: ["hostname__value"]
     attributes:
       - name: hostname
         kind: Text
