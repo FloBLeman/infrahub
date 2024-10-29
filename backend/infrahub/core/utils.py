@@ -191,6 +191,12 @@ def convert_ip_to_binary_str(
     return ip_bin.zfill(obj.max_prefixlen)
 
 
+def collapse_ipv6_address_or_network(address_or_network: str) -> str:
+    if "/" in address_or_network:
+        return ipaddress.IPv6Network(address_or_network).with_prefixlen
+    return str(ipaddress.IPv6Address(address_or_network))
+
+
 # --------------------------------------------------------------------------------
 # CODE IMPORTED FROM:
 #   https://github.com/graphql-python/graphene/blob/9c3e4bb7da001aac48002a3b7d83dcd072087770/graphene/utils/subclass_with_meta.py#L18
