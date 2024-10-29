@@ -33,12 +33,14 @@ class BranchMerger:
         self,
         db: InfrahubDatabase,
         source_branch: Branch,
+        diff_coordinator: DiffCoordinator,
         destination_branch: Optional[Branch] = None,
         service: Optional[InfrahubServices] = None,
     ):
         self.source_branch = source_branch
         self.destination_branch: Branch = destination_branch or registry.get_branch_from_registry()
         self.db = db
+        self.diff_coordinator = diff_coordinator
         self.migrations: list[SchemaUpdateMigrationInfo] = []
         self._graph_diff: Optional[BranchDiffer] = None
 
@@ -226,31 +228,25 @@ class BranchMerger:
     async def merge(
         self,
         at: Optional[Union[str, Timestamp]] = None,
-        conflict_resolution: Optional[dict[str, bool]] = None,
+        conflict_resolution: Optional[dict[str, bool]] = None,  # pylint: disable=unused-argument
     ) -> None:
         """Merge the current branch into main."""
-        conflict_resolution = conflict_resolution or {}
-        conflicts = await self.validate_branch()
-
-        if conflict_resolution:
-            errors: list[str] = []
-            for conflict in conflicts:
-                if conflict.conflict_path not in conflict_resolution:
-                    errors.append(str(conflict))
-
-            if errors:
-                raise ValidationError(
-                    f"Unable to merge the branch '{self.source_branch.name}', conflict resolution missing: {', '.join(errors)}"
-                )
-
-        elif conflicts:
-            errors = [str(conflict) for conflict in conflicts]
-            raise ValidationError(
-                f"Unable to merge the branch '{self.source_branch.name}', validation failed: {', '.join(errors)}"
-            )
-
         if self.source_branch.name == registry.default_branch:
             raise ValidationError(f"Unable to merge the branch '{self.source_branch.name}' into itself")
+
+        enriched_diff = await self.diff_coordinator.update_branch_diff(
+            base_branch=self.destination_branch, diff_branch=self.source_branch
+        )
+        conflict_map = enriched_diff.get_all_conflicts()
+        errors: list[str] = []
+        for conflict_path, conflict in conflict_map.items():
+            if conflict.selected_branch is None:
+                errors.append(conflict_path)
+
+        if errors:
+            raise ValidationError(
+                f"Unable to merge the branch '{self.source_branch.name}', conflict resolution missing: {', '.join(errors)}"
+            )
 
         # TODO need to find a way to properly communicate back to the user any issue that could come up during the merge
         # From the Graph or From the repositories

@@ -32,9 +32,9 @@ async def rebase_branch(branch: str) -> None:
 
     obj = await Branch.get_by_name(db=service.database, name=branch)
     base_branch = await Branch.get_by_name(db=service.database, name=registry.default_branch)
-    merger = BranchMerger(db=service.database, source_branch=obj, service=service)
     component_registry = get_component_registry()
     diff_coordinator = await component_registry.get_component(DiffCoordinator, db=service.database, branch=obj)
+    merger = BranchMerger(db=service.database, diff_coordinator=diff_coordinator, source_branch=obj, service=service)
     diff_repository = await component_registry.get_component(DiffRepository, db=service.database, branch=obj)
     enriched_diff = await diff_coordinator.update_branch_diff(base_branch=base_branch, diff_branch=obj)
     if enriched_diff.get_all_conflicts():
@@ -136,15 +136,45 @@ async def merge_branch(branch: str, conflict_resolution: dict[str, bool] | None 
     await add_branch_tag(branch_name=registry.default_branch)
 
     obj = await Branch.get_by_name(db=service.database, name=branch)
+    base_branch = await Branch.get_by_name(db=service.database, name=registry.default_branch)
 
-    merger: BranchMerger | None = None
+    component_registry = get_component_registry()
+    diff_coordinator = await component_registry.get_component(DiffCoordinator, db=service.database, branch=obj)
+    diff_repository = await component_registry.get_component(DiffRepository, db=service.database, branch=obj)
+    enriched_diff = await diff_coordinator.update_branch_diff(base_branch=base_branch, diff_branch=obj)
+    for conflict in enriched_diff.get_all_conflicts().values():
+        if conflict.selected_branch is None:
+            raise ValidationError(
+                f"Branch {obj.name} contains conflicts with the default branch that must be resolved."
+                " Please review the diff for details and resolve the conflicts before merging."
+            )
+    node_diff_field_summaries = await diff_repository.get_node_field_summaries(
+        diff_branch_name=enriched_diff.diff_branch_name, diff_id=enriched_diff.uuid
+    )
+    merger = BranchMerger(db=service.database, diff_coordinator=diff_coordinator, source_branch=obj, service=service)
+    candidate_schema = merger.get_candidate_schema()
+    determiner = ConstraintValidatorDeterminer(schema_branch=candidate_schema)
+    constraints = await determiner.get_constraints(node_diffs=node_diff_field_summaries)
+    if obj.has_schema_changes:
+        constraints += await merger.calculate_validations(target_schema=candidate_schema)
+    if constraints:
+        error_messages = await schema_validate_migrations(
+            message=SchemaValidateMigrationData(branch=obj, schema_branch=candidate_schema, constraints=constraints)
+        )
+        if error_messages:
+            raise ValidationError(",\n".join(error_messages))
+
     async with lock.registry.global_graph_lock():
         async with service.database.start_transaction() as db:
-            merger = BranchMerger(db=db, source_branch=obj, service=service)
+            diff_coordinator = await component_registry.get_component(DiffCoordinator, db=db, branch=obj)
+            merger = BranchMerger(db=db, diff_coordinator=diff_coordinator, source_branch=obj, service=service)
+            candidate_schema = merger.get_candidate_schema()
+            determiner = ConstraintValidatorDeterminer(schema_branch=candidate_schema)
+            constraints = await determiner.get_constraints(node_diffs=node_diff_field_summaries)
             await merger.merge(conflict_resolution=conflict_resolution)
             await merger.update_schema()
 
-    if merger and merger.migrations:
+    if merger.migrations:
         errors = await schema_apply_migrations(
             message=SchemaApplyMigrationData(
                 branch=merger.destination_branch,
