@@ -64,25 +64,26 @@ async def rebase_branch(branch: str) -> None:
 
     schema_in_main_before = merger.destination_schema.duplicate()
 
-    async with service.database.start_transaction() as dbt:
-        await obj.rebase(db=dbt)
-        log.info("Branch successfully rebased")
+    async with lock.registry.global_graph_lock():
+        async with service.database.start_transaction() as dbt:
+            await obj.rebase(db=dbt)
+            log.info("Branch successfully rebased")
 
-    if obj.has_schema_changes:
-        # NOTE there is a bit additional work in order to calculate a proper diff that will
-        # allow us to pull only the part of the schema that has changed, for now the safest option is to pull
-        # Everything
-        # schema_diff = await merger.has_schema_changes()
-        # TODO Would be good to convert this part to a Prefect Task in order to track it properly
-        updated_schema = await registry.schema.load_schema_from_db(
-            db=service.database,
-            branch=obj,
-            # schema=merger.source_schema.duplicate(),
-            # schema_diff=schema_diff,
-        )
-        registry.schema.set_schema_branch(name=obj.name, schema=updated_schema)
-        obj.update_schema_hash()
-        await obj.save(db=service.database)
+        if obj.has_schema_changes:
+            # NOTE there is a bit additional work in order to calculate a proper diff that will
+            # allow us to pull only the part of the schema that has changed, for now the safest option is to pull
+            # Everything
+            # schema_diff = await merger.has_schema_changes()
+            # TODO Would be good to convert this part to a Prefect Task in order to track it properly
+            updated_schema = await registry.schema.load_schema_from_db(
+                db=service.database,
+                branch=obj,
+                # schema=merger.source_schema.duplicate(),
+                # schema_diff=schema_diff,
+            )
+            registry.schema.set_schema_branch(name=obj.name, schema=updated_schema)
+            obj.update_schema_hash()
+            await obj.save(db=service.database)
 
         # Execute the migrations
         migrations = await merger.calculate_migrations(target_schema=updated_schema)
