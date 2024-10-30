@@ -7,10 +7,12 @@ from infrahub_sdk.schema import InfrahubGeneratorDefinitionConfig
 from prefect import flow, task
 
 from infrahub import lock
-from infrahub.core.constants import GeneratorInstanceStatus
+from infrahub.core.constants import GeneratorInstanceStatus, InfrahubKind
 from infrahub.generators.models import RequestGeneratorRun
 from infrahub.git.base import extract_repo_file_information
 from infrahub.git.repository import get_initialized_repo
+from infrahub.message_bus import messages
+from infrahub.message_bus.types import ProposedChangeGeneratorDefinition
 from infrahub.services import InfrahubServices, services
 
 
@@ -103,3 +105,34 @@ async def _define_instance(model: RequestGeneratorRun, service: InfrahubServices
                 )
                 await instance.save()
     return instance
+
+
+@flow(name="generator_definition_run")
+async def run_generator_definition(branch: str) -> None:
+    service = services.service
+    generators = await service.client.filters(
+        kind=InfrahubKind.GENERATORDEFINITION, prefetch_relationships=True, populate_store=True, branch=branch
+    )
+
+    generator_definitions = [
+        ProposedChangeGeneratorDefinition(
+            definition_id=generator.id,
+            definition_name=generator.name.value,
+            class_name=generator.class_name.value,
+            file_path=generator.file_path.value,
+            query_name=generator.query.peer.name.value,
+            query_models=generator.query.peer.models.value,
+            repository_id=generator.repository.peer.id,
+            parameters=generator.parameters.value,
+            group_id=generator.targets.peer.id,
+            convert_query_response=generator.convert_query_response.value,
+        )
+        for generator in generators
+    ]
+
+    events = [
+        messages.RequestGeneratorDefinitionRun(branch=branch, generator_definition=generator_definition)
+        for generator_definition in generator_definitions
+    ]
+    for event in events:
+        await service.send(message=event)

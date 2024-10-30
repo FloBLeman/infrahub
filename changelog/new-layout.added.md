@@ -1,4 +1,5 @@
 Reworked branch selector:
+
 - Redesigned the UI
 - Added filter for branch
 - Improved accessibility & keyboard navigation

@@ -61,7 +61,6 @@ COMMAND_MAP = {
     "send.echo.request": send.echo.request,
     "schema.migration.path": schema.migration.path,
     "schema.validator.path": schema.validator.path,
-    "trigger.generator_definition.run": trigger.generator_definition.run,
     "trigger.proposed_change.cancel": trigger.proposed_change.cancel,
     "trigger.webhook.actions": trigger.webhook.actions,
 }
