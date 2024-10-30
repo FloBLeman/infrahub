@@ -147,6 +147,7 @@ async def merge_branch(branch: str, conflict_resolution: dict[str, bool] | None 
     obj = await Branch.get_by_name(db=service.database, name=branch)
     component_registry = get_component_registry()
 
+    merger: BranchMerger | None = None
     async with lock.registry.global_graph_lock():
         async with service.database.start_transaction() as db:
             diff_coordinator = await component_registry.get_component(DiffCoordinator, db=db, branch=obj)
@@ -157,7 +158,7 @@ async def merge_branch(branch: str, conflict_resolution: dict[str, bool] | None 
             await merger.merge(conflict_resolution=conflict_resolution)
             await merger.update_schema()
 
-    if merger.migrations:
+    if merger and merger.migrations:
         errors = await schema_apply_migrations(
             message=SchemaApplyMigrationData(
                 branch=merger.destination_branch,
