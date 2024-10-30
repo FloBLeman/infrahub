@@ -17,6 +17,8 @@ from infrahub.message_bus import messages
 from infrahub.message_bus.messages.git_repository_connectivity import GitRepositoryConnectivityResponse
 from infrahub.workflows.catalogue import GIT_REPOSITORIES_PULL_READ_ONLY
 
+from ...git.models import GitRepositoryAdd
+from ...workflows.catalogue import GIT_REPOSITORY_ADD
 from .main import InfrahubMutationMixin, InfrahubMutationOptions
 
 if TYPE_CHECKING:
@@ -101,7 +103,7 @@ class InfrahubRepositoryMutation(InfrahubMutationMixin, Mutation):
             )
         else:
             obj = cast(CoreRepository, obj)
-            message = messages.GitRepositoryAdd(
+            git_repo_add_model = GitRepositoryAdd(
                 repository_id=obj.id,
                 repository_name=obj.name.value,
                 location=obj.location.value,
@@ -111,8 +113,10 @@ class InfrahubRepositoryMutation(InfrahubMutationMixin, Mutation):
                 created_by=authenticated_user,
             )
 
-        if context.service:
-            await context.service.send(message=message)
+            if context.service:
+                context.service.workflow.submit_workflow(
+                    workflow=GIT_REPOSITORY_ADD, parameters={"model": git_repo_add_model}
+                )
 
         # TODO Validate that the creation of the repository went as expected
 

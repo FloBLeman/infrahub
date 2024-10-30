@@ -6,12 +6,14 @@ from infrahub.core.constants import InfrahubKind, RepositoryInternalStatus
 from infrahub.core.protocols import CoreRepository
 from infrahub.core.registry import registry
 from infrahub.exceptions import RepositoryError
+from infrahub.git.repository import InfrahubRepository, get_initialized_repo
 from infrahub.services import services
 
 from ..log import get_logger
 from ..tasks.artifact import define_artifact
 from ..workflows.catalogue import REQUEST_ARTIFACT_DEFINITION_GENERATE, REQUEST_ARTIFACT_GENERATE
 from ..workflows.utils import add_branch_tag
+from .models import GitRepositoryAdd, RequestArtifactDefinitionGenerate, RequestArtifactGenerate
 from .models import (
     GitRepositoryMerge,
     GitRepositoryPullReadOnly,
@@ -21,6 +23,32 @@ from .models import (
 from .repository import InfrahubReadOnlyRepository, InfrahubRepository, get_initialized_repo
 
 log = get_logger()
+
+
+@flow(name="git-repository-add-read-write")
+async def add_git_repository(model: GitRepositoryAdd) -> None:
+    service = services.service
+    async with service.git_report(
+        related_node=model.repository_id,
+        title=f"Initial import of the repository in branch: {model.infrahub_branch_name}",
+        created_by=model.created_by,
+    ) as git_report:
+        async with lock.registry.get(name=model.repository_name, namespace="repository"):
+            repo = await InfrahubRepository.new(
+                id=model.repository_id,
+                name=model.repository_name,
+                location=model.location,
+                client=service.client,
+                task_report=git_report,
+                infrahub_branch_name=model.infrahub_branch_name,
+                internal_status=model.internal_status,
+                default_branch_name=model.default_branch_name,
+            )
+            await repo.import_objects_from_files(
+                infrahub_branch_name=model.infrahub_branch_name, git_branch_name=model.default_branch_name
+            )
+            if model.internal_status == RepositoryInternalStatus.ACTIVE.value:
+                await repo.sync()
 
 
 @flow(name="git_repositories_create_branch")
