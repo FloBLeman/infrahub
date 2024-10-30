@@ -7,7 +7,7 @@ from infrahub_sdk.utils import extract_fields_first_node, is_valid_uuid
 
 from infrahub.core.constants import InfrahubKind
 from infrahub.core.manager import NodeManager
-from infrahub.core.utils import collapse_ipv6_address_or_network
+from infrahub.core.utils import collapse_ipv6
 
 if TYPE_CHECKING:
     from graphql import GraphQLResolveInfo
@@ -51,8 +51,8 @@ async def search_resolver(
             result.append(matching)
     else:
         try:
-            # Convert any IPv6 address/network to collapsed format as it might be stored in db.
-            q = collapse_ipv6_address_or_network(q)
+            # Convert any IPv6 address, network or partial address to collapsed format as it might be stored in db.
+            q = collapse_ipv6(q)
         except ValueError:
             pass
 
