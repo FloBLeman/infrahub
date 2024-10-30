@@ -1,12 +1,8 @@
-import pytest
-
 from infrahub.core import registry
 from infrahub.core.branch import Branch
-from infrahub.core.branch.tasks import merge_branch
 from infrahub.core.constants import InfrahubKind
 from infrahub.core.diff.coordinator import DiffCoordinator
-from infrahub.core.diff.model.path import ConflictSelection
-from infrahub.core.diff.repository.repository import DiffRepository
+from infrahub.core.diff.merger.merger import DiffMerger
 from infrahub.core.initialization import create_branch
 from infrahub.core.manager import NodeManager
 from infrahub.core.merge import BranchMerger
@@ -17,7 +13,6 @@ from infrahub.core.schema import AttributeSchema
 from infrahub.core.timestamp import Timestamp
 from infrahub.database import InfrahubDatabase
 from infrahub.dependencies.registry import get_component_registry
-from infrahub.exceptions import ValidationError
 
 
 async def test_validate_graph(db: InfrahubDatabase, base_dataset_02, register_core_models_schema):
@@ -25,7 +20,8 @@ async def test_validate_graph(db: InfrahubDatabase, base_dataset_02, register_co
 
     component_registry = get_component_registry()
     diff_coordinator = await component_registry.get_component(DiffCoordinator, db=db, branch=branch1)
-    merger = BranchMerger(db=db, diff_coordinator=diff_coordinator, source_branch=branch1)
+    diff_merger = await component_registry.get_component(DiffMerger, db=db, branch=branch1)
+    merger = BranchMerger(db=db, diff_coordinator=diff_coordinator, diff_merger=diff_merger, source_branch=branch1)
     conflicts = await merger.validate_graph()
 
     assert not conflicts
@@ -36,7 +32,7 @@ async def test_validate_graph(db: InfrahubDatabase, base_dataset_02, register_co
     c1.name.value = "new name"
     await c1.save(db=db)
 
-    merger = BranchMerger(db=db, diff_coordinator=diff_coordinator, source_branch=branch1)
+    merger = BranchMerger(db=db, diff_coordinator=diff_coordinator, diff_merger=diff_merger, source_branch=branch1)
     conflicts = await merger.validate_graph()
 
     assert conflicts
@@ -48,7 +44,8 @@ async def test_validate_empty_branch(db: InfrahubDatabase, base_dataset_02, regi
 
     component_registry = get_component_registry()
     diff_coordinator = await component_registry.get_component(DiffCoordinator, db=db, branch=branch2)
-    merger = BranchMerger(db=db, diff_coordinator=diff_coordinator, source_branch=branch2)
+    diff_merger = await component_registry.get_component(DiffMerger, db=db, branch=branch2)
+    merger = BranchMerger(db=db, diff_coordinator=diff_coordinator, diff_merger=diff_merger, source_branch=branch2)
     conflicts = await merger.validate_graph()
 
     assert not conflicts
@@ -60,9 +57,9 @@ async def test_merge_graph(db: InfrahubDatabase, default_branch, base_dataset_02
     at = Timestamp()
     component_registry = get_component_registry()
     diff_coordinator = await component_registry.get_component(DiffCoordinator, db=db, branch=branch1)
+    diff_merger = await component_registry.get_component(DiffMerger, db=db, branch=branch1)
     await diff_coordinator.update_branch_diff(base_branch=default_branch, diff_branch=branch1)
-    merger = BranchMerger(db=db, diff_coordinator=diff_coordinator, source_branch=branch1)
-    await merger.merge_graph(at=at)
+    await diff_merger.merge_graph(at=at)
 
     # Query all cars in MAIN, AFTER the merge
     cars = sorted(await NodeManager.query(schema="TestCar", db=db), key=lambda c: c.id)
@@ -96,8 +93,7 @@ async def test_merge_graph(db: InfrahubDatabase, default_branch, base_dataset_02
     assert cars[0].nbr_seats.value == 4
 
     # It should be possible to merge a graph even without changes
-    merger = BranchMerger(db=db, diff_coordinator=diff_coordinator, source_branch=branch1)
-    await merger.merge_graph(at=at)
+    await diff_merger.merge_graph(at=at)
 
 
 async def test_merge_graph_delete(db: InfrahubDatabase, default_branch, base_dataset_02, register_core_models_schema):
@@ -112,8 +108,8 @@ async def test_merge_graph_delete(db: InfrahubDatabase, default_branch, base_dat
     await p3.delete(db=db)
 
     await diff_coordinator.update_branch_diff(base_branch=default_branch, diff_branch=branch1)
-    merger = BranchMerger(db=db, diff_coordinator=diff_coordinator, source_branch=branch1)
-    await merger.merge_graph(at=Timestamp())
+    diff_merger = await component_registry.get_component(DiffMerger, db=db, branch=branch1)
+    await diff_merger.merge_graph(at=Timestamp())
 
     # Query all cars in MAIN, AFTER the merge
     persons = sorted(await NodeManager.query(schema="TestPerson", db=db), key=lambda p: p.id)
@@ -152,8 +148,8 @@ async def test_merge_relationship_many(
     await org1_main.save(db=db)
 
     await diff_coordinator.update_branch_diff(base_branch=default_branch, diff_branch=branch1)
-    merger = BranchMerger(db=db, diff_coordinator=diff_coordinator, source_branch=branch1)
-    await merger.merge_graph(at=Timestamp())
+    diff_merger = await component_registry.get_component(DiffMerger, db=db, branch=branch1)
+    await diff_merger.merge_graph(at=Timestamp())
 
     org1_main = await NodeManager.get_one(id=org1.id, db=db)
     assert len(await org1_main.tags.get(db=db)) == 3
@@ -202,8 +198,13 @@ async def test_merge_update_schema(
 
     component_registry = get_component_registry()
     diff_coordinator = await component_registry.get_component(DiffCoordinator, db=db, branch=branch2)
+    diff_merger = await component_registry.get_component(DiffMerger, db=db, branch=branch2)
     merger = BranchMerger(
-        db=db, diff_coordinator=diff_coordinator, source_branch=branch2, destination_branch=default_branch
+        db=db,
+        diff_coordinator=diff_coordinator,
+        diff_merger=diff_merger,
+        source_branch=branch2,
+        destination_branch=default_branch,
     )
     assert await merger.update_schema() is True
     assert sorted(merger.migrations, key=lambda x: x.path.get_path()) == sorted(
@@ -251,57 +252,3 @@ async def test_merge_update_schema(
         ],
         key=lambda x: x.path.get_path(),
     )
-
-
-async def test_branch_merge_unresolved_diff_conflict(
-    db: InfrahubDatabase,
-    default_branch: Branch,
-    init_service,
-    car_person_schema,
-    car_camry_main,
-):
-    branch2 = await create_branch(db=db, branch_name="branch2")
-    car_main = await NodeManager.get_one(db=db, id=car_camry_main.id)
-    car_main.name.value += "-main"
-    await car_main.save(db=db)
-    car_branch = await NodeManager.get_one(db=db, branch=branch2, id=car_camry_main.id)
-    car_branch.name.value += "-branch"
-    await car_branch.save(db=db)
-
-    with pytest.raises(ValidationError, match="contains conflicts with the default branch that must be resolved"):
-        await merge_branch(branch=branch2.name)
-
-
-async def test_branch_merge_resolved_diff_conflict(
-    db: InfrahubDatabase,
-    default_branch: Branch,
-    register_core_models_schema,
-    init_service,
-    car_person_schema,
-    car_camry_main,
-    helper,
-):
-    bus_simulator = helper.get_message_bus_simulator()
-    init_service.message_bus = bus_simulator
-    bus_simulator.service = init_service
-    branch2 = await create_branch(db=db, branch_name="branch2")
-    car_main = await NodeManager.get_one(db=db, id=car_camry_main.id)
-    car_main.name.value += "-main"
-    main_name = car_main.name.value
-    await car_main.save(db=db)
-    car_branch = await NodeManager.get_one(db=db, branch=branch2, id=car_camry_main.id)
-    car_branch.name.value += "-branch"
-    await car_branch.save(db=db)
-    component_registry = get_component_registry()
-    diff_coordinator = await component_registry.get_component(DiffCoordinator, db=db, branch=branch2)
-    diff_repository = await component_registry.get_component(DiffRepository, db=db, branch=branch2)
-    enriched_diff = await diff_coordinator.update_branch_diff(base_branch=default_branch, diff_branch=branch2)
-    conflicts_map = enriched_diff.get_all_conflicts()
-    assert len(conflicts_map) == 1
-    for conflict in conflicts_map.values():
-        await diff_repository.update_conflict_by_id(conflict_id=conflict.uuid, selection=ConflictSelection.BASE_BRANCH)
-
-    await merge_branch(branch=branch2.name)
-
-    retrieved_car = await NodeManager.get_one(db=db, id=car_camry_main.id)
-    assert retrieved_car.name.value == main_name

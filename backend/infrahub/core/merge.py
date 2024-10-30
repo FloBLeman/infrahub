@@ -3,15 +3,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Optional, Union
 
 from infrahub.core.constants import DiffAction, RepositoryInternalStatus
-from infrahub.core.diff.coordinator import DiffCoordinator
-from infrahub.core.diff.merger.merger import DiffMerger
 from infrahub.core.manager import NodeManager
 from infrahub.core.models import SchemaBranchDiff, SchemaUpdateValidationResult
 from infrahub.core.protocols import CoreRepository
 from infrahub.core.registry import registry
 from infrahub.core.schema import GenericSchema, NodeSchema
 from infrahub.core.timestamp import Timestamp
-from infrahub.dependencies.registry import get_component_registry
 from infrahub.exceptions import ValidationError
 from infrahub.message_bus import messages
 
@@ -19,6 +16,8 @@ from .diff.branch_differ import BranchDiffer
 
 if TYPE_CHECKING:
     from infrahub.core.branch import Branch
+    from infrahub.core.diff.coordinator import DiffCoordinator
+    from infrahub.core.diff.merger.merger import DiffMerger
     from infrahub.core.models import SchemaUpdateConstraintInfo, SchemaUpdateMigrationInfo
     from infrahub.core.schema.manager import SchemaDiff
     from infrahub.core.schema.schema_branch import SchemaBranch
@@ -34,6 +33,7 @@ class BranchMerger:
         db: InfrahubDatabase,
         source_branch: Branch,
         diff_coordinator: DiffCoordinator,
+        diff_merger: DiffMerger,
         destination_branch: Optional[Branch] = None,
         service: Optional[InfrahubServices] = None,
     ):
@@ -41,6 +41,7 @@ class BranchMerger:
         self.destination_branch: Branch = destination_branch or registry.get_branch_from_registry()
         self.db = db
         self.diff_coordinator = diff_coordinator
+        self.diff_merger = diff_merger
         self.migrations: list[SchemaUpdateMigrationInfo] = []
         self._graph_diff: Optional[BranchDiffer] = None
 
@@ -251,20 +252,8 @@ class BranchMerger:
         # TODO need to find a way to properly communicate back to the user any issue that could come up during the merge
         # From the Graph or From the repositories
         at = Timestamp(at)
-        await self.merge_graph(at=at)
+        await self.diff_merger.merge_graph(at=at)
         await self.merge_repositories()
-
-    async def merge_graph(
-        self,
-        at: Timestamp,
-    ) -> None:
-        component_registry = get_component_registry()
-        diff_coordinator = await component_registry.get_component(
-            DiffCoordinator, db=self.db, branch=self.source_branch
-        )
-        await diff_coordinator.update_branch_diff(base_branch=self.destination_branch, diff_branch=self.source_branch)
-        diff_merger = await component_registry.get_component(DiffMerger, db=self.db, branch=self.source_branch)
-        await diff_merger.merge_graph(at=at)
 
     async def merge_repositories(self) -> None:
         # Collect all Repositories in Main because we'll need the commit in Main for each one.
