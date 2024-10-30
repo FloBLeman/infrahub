@@ -3,9 +3,9 @@ from graphql import graphql
 
 from infrahub.core.branch import Branch
 from infrahub.core.node import Node
-from infrahub.core.utils import collapse_ipv6
 from infrahub.database import InfrahubDatabase
 from infrahub.graphql.initialization import prepare_graphql_params
+from infrahub.graphql.queries.search import _collapse_ipv6
 
 SEARCH_QUERY = """
 query ($search: String!) {
@@ -272,19 +272,13 @@ async def test_search_ipv4(
     ],
 )
 def test_collapse_ipv6_address_or_network(query, expected):
-    assert collapse_ipv6(query) == expected
+    assert _collapse_ipv6(query) == expected
 
 
 @pytest.mark.parametrize(
     "query",
-    [
-        "invalid",
-        "invalid:case",
-        "2001:invalid",
-        "2001:0db81:0000",
-        "10.0.0.0",
-    ],
+    ["invalid", "invalid:case", "2001:invalid", "2001:0db81:0000", "10.0.0.0", "2001:db8:1"],
 )
 def test_collapse_ipv6_address_or_network_invalid_cases(query):
     with pytest.raises(ValueError):
-        collapse_ipv6(query)
+        _collapse_ipv6(query)

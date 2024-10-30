@@ -191,68 +191,6 @@ def convert_ip_to_binary_str(
     return ip_bin.zfill(obj.max_prefixlen)
 
 
-def collapse_ipv6(s: str) -> str:
-    """Collapse an ipv6 address, ipv6 network, or a partial ipv6 address. Raises an error if input does not resemble an IPv6 address."""
-
-    try:
-        return str(ipaddress.IPv6Address(s))
-    except ipaddress.AddressValueError:
-        pass
-
-    try:
-        return ipaddress.IPv6Network(s).with_prefixlen
-    except ipaddress.AddressValueError:
-        pass
-
-    # Input string might be an incomplete address in IPv6 format,
-    # in which case we would like the collapsed form equivalent of this incomplete address for matching purposes.
-    # To get it, we first try to pad the incomplete address with zeros, then we retrieve the collapsed form
-    # of the full address, and we remove extra "::" or ":0" at the end of it.
-
-    error_message = "Input string does not match IPv6 format"
-
-    if "::" in s:
-        raise ValueError(error_message)
-
-    # Add padding to complete the address if needed
-    segments = s.split(":")
-
-    if len(segments) == 0:
-        raise ValueError(error_message)
-
-    # If any of the non-last segments has less than 4 characters it means we deal with
-    # a IPv6 collapsed form or an invalid address
-    for segment in segments[:-1]:
-        if len(segment) != 4:
-            raise ValueError(error_message)
-
-    # Add 0 padding to last segment
-    if len(segments[-1]) > 4:
-        raise ValueError(error_message)
-
-    segments[-1] += "0" * (4 - len(segments[-1]))
-
-    # Complete the address to have 8 segments by padding with zeros
-    while len(segments) < 8:
-        segments.append("0000")
-
-    # Create a full IPv6 address from the partial input
-    full_address = ":".join(segments)
-
-    # Create an IPv6Address object for validation and to build IPv6 collapsed form.
-    ipv6_address = ipaddress.IPv6Address(full_address)
-
-    compressed_address = ipv6_address.compressed
-
-    # We padded with zeros so address might endswith "::" or ":0".
-    if compressed_address.endswith(("::", ":0")):
-        return compressed_address[:-2]
-
-    # Otherwise, it means 8th segment of ipv6 address was not full and not composed of 0 only
-    # e.g. 2001:0db8:0000:0000:0000:0000:03
-    return compressed_address
-
-
 # --------------------------------------------------------------------------------
 # CODE IMPORTED FROM:
 #   https://github.com/graphql-python/graphene/blob/9c3e4bb7da001aac48002a3b7d83dcd072087770/graphene/utils/subclass_with_meta.py#L18
