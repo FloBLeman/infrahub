@@ -27,7 +27,6 @@ from infrahub.events import EventMeta, NodeMutatedEvent
 from infrahub.exceptions import ValidationError
 from infrahub.log import get_log_data, get_logger
 from infrahub.worker import WORKER_IDENTITY
-from infrahub.workflows.catalogue import PROCESS_COMPUTED_MACRO
 
 from .node_getter.by_default_filter import MutationNodeGetterByDefaultFilter
 from .node_getter.by_hfid import MutationNodeGetterByHfid
@@ -102,9 +101,9 @@ class InfrahubMutationMixin:
         context.at = Timestamp()
 
         # Get relevant macros based on the current change
-        schema_branch = registry.schema.get_schema_branch(name=context.branch.name)
-        updated_fields = list(data.keys())
-        macros = schema_branch.get_impacted_macros(kind=obj.get_kind(), updates=updated_fields)
+        # schema_branch = registry.schema.get_schema_branch(name=context.branch.name)
+        # updated_fields = list(data.keys())
+        # macros = schema_branch.get_impacted_macros(kind=obj.get_kind(), updates=updated_fields)
         if config.SETTINGS.broker.enable and context.background:
             log_data = get_log_data()
             request_id = log_data.get("request_id", "")
@@ -122,17 +121,17 @@ class InfrahubMutationMixin:
 
             context.background.add_task(context.service.event.send, event)
 
-            # Add event
-            if macros:
-                await context.service.workflow.submit_workflow(
-                    workflow=PROCESS_COMPUTED_MACRO,
-                    parameters={
-                        "branch_name": context.branch.name,
-                        "node_kind": obj.get_kind(),
-                        "object_id": obj.get_id(),
-                        "updated_fields": updated_fields,
-                    },
-                )
+            # # Add event
+            # if macros:
+            #     await context.service.workflow.submit_workflow(
+            #         workflow=PROCESS_COMPUTED_MACRO,
+            #         parameters={
+            #             "branch_name": context.branch.name,
+            #             "node_kind": obj.get_kind(),
+            #             "object_id": obj.get_id(),
+            #             "updated_fields": updated_fields,
+            #         },
+            #     )
 
         return mutation
 

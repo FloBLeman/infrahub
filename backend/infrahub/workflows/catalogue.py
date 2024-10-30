@@ -211,6 +211,13 @@ PROCESS_COMPUTED_MACRO = WorkflowDefinition(
     function="process_macro",
 )
 
+COMPUTED_ATTRIBUTE_SETUP = WorkflowDefinition(
+    name="computed-attribute-setup",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.process.computed_attribute.tasks",
+    function="computed_attribute_setup",
+)
+
 worker_pools = [INFRAHUB_WORKER_POOL]
 
 workflows = [
@@ -240,4 +247,5 @@ workflows = [
     UPDATE_GRAPHQL_QUERY_GROUP,
     GIT_REPOSITORY_ADD,
     PROCESS_COMPUTED_MACRO,
+    COMPUTED_ATTRIBUTE_SETUP,
 ]

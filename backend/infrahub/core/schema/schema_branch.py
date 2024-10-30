@@ -89,13 +89,15 @@ class RegisteredNodeComputedAttribute(BaseModel):
         description="These relationships refer to the name of the relationship as seen from the source node.",
     )
 
-    def get_targets(self, updates: list[str]) -> list[ComputedAttributeTarget]:
+    def get_targets(self, updates: list[str] | None = None) -> list[ComputedAttributeTarget]:
         targets: dict[str, ComputedAttributeTarget] = {}
         for attribute, entries in self.local_fields.items():
-            if attribute in updates:
-                for entry in entries:
-                    if entry.key_name not in targets:
-                        targets[entry.key_name] = entry
+            if updates and attribute not in updates:
+                continue
+
+            for entry in entries:
+                if entry.key_name not in targets:
+                    targets[entry.key_name] = entry
 
         for relationship_name, entries in self.relationships.items():
             for entry in entries:
@@ -1009,7 +1011,7 @@ class SchemaBranch:
                 f"{node.kind}: Attribute {attribute.name!r} is a computed transform, it can't be mandatory"
             )
 
-    def get_impacted_macros(self, kind: str, updates: list[str]) -> list[ComputedAttributeTarget]:
+    def get_impacted_macros(self, kind: str, updates: list[str] | None = None) -> list[ComputedAttributeTarget]:
         if mapping := self._computed_macro_map.get(kind):
             return mapping.get_targets(updates=updates)
 
