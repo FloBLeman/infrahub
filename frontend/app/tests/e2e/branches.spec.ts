@@ -17,6 +17,16 @@ test.describe("Branches creation and deletion", () => {
       await page.getByTestId("branch-selector-trigger").click();
       await expect(page.getByTestId("create-branch-button")).toBeDisabled();
     });
+
+    test("should not see the quick action to create a not found branch name", async ({ page }) => {
+      await page.goto("/");
+      await page.getByTestId("branch-selector-trigger").click();
+      await page.getByTestId("branch-search-input").fill("not-found-branch");
+      await expect(page.getByText("No branch found")).toBeVisible();
+      await expect(
+        page.getByRole("option", { name: "Create branch not-found-branch" })
+      ).not.toBeVisible();
+    });
   });
 
   test.describe("when logged in as Admin", () => {
