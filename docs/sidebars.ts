@@ -314,6 +314,7 @@ const sidebars: SidebarsConfig = {
           items: [
             // 'release-notes/infrahub/release-1_0_1-DRAFT',
             'release-notes/infrahub/release-1_0',
+            'release-notes/infrahub/release-0_16_4',
             'release-notes/infrahub/release-0_16_3',
             'release-notes/infrahub/release-0_16_2',
             'release-notes/infrahub/release-0_16_1',
