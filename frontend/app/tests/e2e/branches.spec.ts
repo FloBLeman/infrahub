@@ -18,13 +18,18 @@ test.describe("Branches creation and deletion", () => {
       await expect(page.getByTestId("create-branch-button")).toBeDisabled();
     });
 
-    test("should not see the quick action to create a not found branch name", async ({ page }) => {
+    test("should not show quick-create option when searching for non-existent branch", async ({
+      page,
+    }) => {
       await page.goto("/");
       await page.getByTestId("branch-selector-trigger").click();
-      await page.getByTestId("branch-search-input").fill("not-found-branch");
+
+      const nonExistentBranchName = "non-existent-branch-123";
+      await page.getByTestId("branch-search-input").fill(nonExistentBranchName);
+
       await expect(page.getByText("No branch found")).toBeVisible();
       await expect(
-        page.getByRole("option", { name: "Create branch not-found-branch" })
+        page.getByRole("option", { name: `Create branch ${nonExistentBranchName}` })
       ).not.toBeVisible();
     });
   });
