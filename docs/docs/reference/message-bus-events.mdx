@@ -392,25 +392,6 @@ For more detailed explanations on how to use these events within Infrahub, see t
 | **repository_location** | The location of repository | string | None |
 <!-- vale on -->
 <!-- vale off -->
-#### Event git.repository.merge
-<!-- vale on -->
-
-**Description**: Merge one branch into another.
-
-**Priority**: 3
-
-<!-- vale off -->
-| Key | Description | Type | Default Value |
-|-----|-------------|------|---------------|
-| **meta** | Meta properties for the message | N/A | None |
-| **repository_id** | The unique ID of the Repository | string | None |
-| **repository_name** | The name of the repository | string | None |
-| **internal_status** | Administrative status of the repository | string | None |
-| **source_branch** | The source branch | string | None |
-| **destination_branch** | The source branch | string | None |
-| **default_branch** | The default branch in Git | string | None |
-<!-- vale on -->
-<!-- vale off -->
 #### Event git.repository.add_read_only
 <!-- vale on -->
 
@@ -1276,26 +1257,6 @@ For more detailed explanations on how to use these events within Infrahub, see t
 | **meta** | Meta properties for the message | N/A | None |
 | **repository_name** | The name of the repository | string | None |
 | **repository_location** | The location of repository | string | None |
-<!-- vale on -->
-<!-- vale off -->
-#### Event git.repository.merge
-<!-- vale on -->
-
-**Description**: Merge one branch into another.
-
-**Priority**: 3
-
-
-<!-- vale off -->
-| Key | Description | Type | Default Value |
-|-----|-------------|------|---------------|
-| **meta** | Meta properties for the message | N/A | None |
-| **repository_id** | The unique ID of the Repository | string | None |
-| **repository_name** | The name of the repository | string | None |
-| **internal_status** | Administrative status of the repository | string | None |
-| **source_branch** | The source branch | string | None |
-| **destination_branch** | The source branch | string | None |
-| **default_branch** | The default branch in Git | string | None |
 <!-- vale on -->
 <!-- vale off -->
 #### Event git.repository.add_read_only

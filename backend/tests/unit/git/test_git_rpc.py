@@ -10,7 +10,7 @@ from typing_extensions import Self
 from infrahub.core.constants import InfrahubKind, RepositoryInternalStatus
 from infrahub.exceptions import RepositoryError
 from infrahub.git import InfrahubRepository
-from infrahub.git.models import GitRepositoryPullReadOnly
+from infrahub.git.models import GitRepositoryMerge, GitRepositoryPullReadOnly
 from infrahub.git.repository import InfrahubReadOnlyRepository
 from infrahub.git.tasks import pull_read_only
 from infrahub.lock import InfrahubLockRegistry
@@ -18,6 +18,7 @@ from infrahub.message_bus import Meta, messages
 from infrahub.message_bus.operations import git
 from infrahub.services import InfrahubServices, services
 from infrahub.services.adapters.workflow.local import WorkflowLocalExecution
+from infrahub.workflows.catalogue import GIT_REPOSITORIES_MERGE
 from tests.helpers.test_client import dummy_async_request
 
 # pylint: disable=redefined-outer-name
@@ -116,7 +117,7 @@ async def test_git_rpc_merge(
 
     commit_main_before = repo.get_commit_value(branch_name="main")
 
-    message = messages.GitRepositoryMerge(
+    model = GitRepositoryMerge(
         repository_id=str(UUIDT()),
         repository_name=repo.name,
         source_branch="branch01",
@@ -127,9 +128,17 @@ async def test_git_rpc_merge(
 
     client_config = Config(requester=dummy_async_request)
     bus_simulator = helper.get_message_bus_simulator()
-    service = InfrahubServices(client=InfrahubClient(config=client_config), message_bus=bus_simulator)
+    service = InfrahubServices(
+        client=InfrahubClient(config=client_config), message_bus=bus_simulator, workflow=WorkflowLocalExecution()
+    )
     bus_simulator.service = service
-    await service.send(message=message)
+
+    original_services = services.service
+    services.service = service
+    await service.workflow.submit_workflow(workflow=GIT_REPOSITORIES_MERGE, parameters={"model": model})
+
+    # Restore original services to not impact other tests. This global variable might/should be redesigned at some point.
+    service.service = original_services
 
     commit_main_after = repo.get_commit_value(branch_name="main")
 
