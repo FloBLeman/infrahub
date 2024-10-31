@@ -1,0 +1,1 @@
+Update demo environment to work with Infrahub 1.0
