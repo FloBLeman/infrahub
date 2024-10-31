@@ -489,7 +489,6 @@ ignore = [
     "C414",     # Unnecessary `list` call within `sorted()`
     "C420",     # Unnecessary dict comprehension for iterable; use `dict.fromkeys` instead
     "FURB113",  # Use `networks.extend(...)` instead of repeatedly calling `networks.append()`
-    "FURB116",  # Replace `bin` call with f-string
     "FURB118",  # Use `operator.itemgetter(1)` instead of defining a lambda
     "FURB140",  # Use `itertools.starmap` instead of the generator
     "FURB171",  # Membership test against single-item container
