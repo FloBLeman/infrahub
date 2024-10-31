@@ -705,6 +705,43 @@ async def test_attribute_size(db: InfrahubDatabase, default_branch: Branch, all_
     await obj.save(db=db)
 
 
+@pytest.mark.parametrize("updated_status,expected_is_default", [(None, True), ("online", True), ("offline", False)])
+async def test_enum_with_default_preserves_is_default(
+    db: InfrahubDatabase,
+    default_branch: Branch,
+    hierarchical_location_data_simple: dict[str, Node],
+    updated_status,
+    expected_is_default,
+):
+    site = hierarchical_location_data_simple["paris"]
+    rack = await Node.init(db=db, schema="LocationRack")
+    await rack.new(db=db, name="new-rack", parent=site)
+    await rack.save(db=db)
+    status_enum_by_value = {
+        "online": rack.status.value.ONLINE,
+        "offline": rack.status.value.OFFLINE,
+    }
+    assert rack.status.is_default
+    assert rack.status.value.value == "online"
+
+    retrieved_rack = await NodeManager.get_one(db=db, id=rack.id)
+    assert retrieved_rack.status.value.value == "online"
+    assert retrieved_rack.status.is_default
+    retrieved_rack.name.value = "updated-rack"
+    expected_status = "online"
+    if updated_status:
+        retrieved_rack.status.value = status_enum_by_value[updated_status]
+        expected_status = updated_status
+    await retrieved_rack.save(db=db)
+    assert retrieved_rack.status.value.value == expected_status
+    assert retrieved_rack.status.is_default is expected_is_default
+
+    updated_rack = await NodeManager.get_one(db=db, id=rack.id)
+    assert updated_rack.name.value == "updated-rack"
+    assert updated_rack.status.value.value == expected_status
+    assert updated_rack.status.is_default is expected_is_default
+
+
 @pytest.mark.parametrize(
     "regex_value,input_value,error",
     [
