@@ -12,8 +12,8 @@ from ..log import get_logger
 from ..tasks.artifact import define_artifact
 from ..workflows.catalogue import REQUEST_ARTIFACT_DEFINITION_GENERATE, REQUEST_ARTIFACT_GENERATE
 from ..workflows.utils import add_branch_tag
-from .models import RequestArtifactDefinitionGenerate, RequestArtifactGenerate
-from .repository import InfrahubRepository, get_initialized_repo
+from .models import GitRepositoryPullReadOnly, RequestArtifactDefinitionGenerate, RequestArtifactGenerate
+from .repository import InfrahubReadOnlyRepository, InfrahubRepository, get_initialized_repo
 
 log = get_logger()
 
@@ -234,3 +234,44 @@ async def generate_request_artifact_definition(model: RequestArtifactDefinitionG
         await service.workflow.submit_workflow(
             workflow=REQUEST_ARTIFACT_GENERATE, parameters={"model": request_artifact_generate_model}
         )
+
+
+@flow(name="git-repository-pull-read-only")
+async def pull_read_only(model: GitRepositoryPullReadOnly) -> None:
+    service = services.service
+    if not model.ref and not model.commit:
+        log.warning(
+            "No commit or ref in GitRepositoryPullReadOnly message",
+            name=model.repository_name,
+            repository_id=model.repository_id,
+        )
+        return
+    async with service.git_report(related_node=model.repository_id, title="Pulling read-only repository") as git_report:
+        async with lock.registry.get(name=model.repository_name, namespace="repository"):
+            init_failed = False
+            try:
+                repo = await InfrahubReadOnlyRepository.init(
+                    id=model.repository_id,
+                    name=model.repository_name,
+                    location=model.location,
+                    client=service.client,
+                    ref=model.ref,
+                    infrahub_branch_name=model.infrahub_branch_name,
+                    task_report=git_report,
+                )
+            except RepositoryError:
+                init_failed = True
+
+            if init_failed:
+                repo = await InfrahubReadOnlyRepository.new(
+                    id=model.repository_id,
+                    name=model.repository_name,
+                    location=model.location,
+                    client=service.client,
+                    ref=model.ref,
+                    infrahub_branch_name=model.infrahub_branch_name,
+                    task_report=git_report,
+                )
+
+            await repo.import_objects_from_files(infrahub_branch_name=model.infrahub_branch_name, commit=model.commit)
+            await repo.sync_from_remote(commit=model.commit)

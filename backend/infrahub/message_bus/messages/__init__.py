@@ -20,7 +20,6 @@ from .git_repository_connectivity import GitRepositoryConnectivity
 from .git_repository_importobjects import GitRepositoryImportObjects
 from .git_repository_merge import GitRepositoryMerge
 from .git_repository_read_only_add import GitRepositoryAddReadOnly
-from .git_repository_read_only_pull import GitRepositoryPullReadOnly
 from .proposed_change.request_proposedchange_dataintegrity import RequestProposedChangeDataIntegrity
 from .proposed_change.request_proposedchange_refreshartifacts import RequestProposedChangeRefreshArtifacts
 from .proposed_change.request_proposedchange_repositorychecks import RequestProposedChangeRepositoryChecks
@@ -66,7 +65,6 @@ MESSAGE_MAP: dict[str, type[InfrahubMessage]] = {
     "git.repository.merge": GitRepositoryMerge,
     "git.repository.add_read_only": GitRepositoryAddReadOnly,
     "git.repository.import_objects": GitRepositoryImportObjects,
-    "git.repository.pull_read_only": GitRepositoryPullReadOnly,
     "schema.migration.path": SchemaMigrationPath,
     "schema.validator.path": SchemaValidatorPath,
     "refresh.registry.branches": RefreshRegistryBranches,

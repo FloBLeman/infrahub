@@ -39,7 +39,6 @@ COMMAND_MAP = {
     "git.repository.add_read_only": git.repository.add_read_only,
     "git.repository.connectivity": git.repository.connectivity,
     "git.repository.import_objects": git.repository.import_objects,
-    "git.repository.pull_read_only": git.repository.pull_read_only,
     "git.repository.merge": git.repository.merge,
     "refresh.registry.branches": refresh.registry.branches,
     "refresh.registry.rebased_branch": refresh.registry.rebased_branch,

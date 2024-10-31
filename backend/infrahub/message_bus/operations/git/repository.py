@@ -104,57 +104,6 @@ async def import_objects(message: messages.GitRepositoryImportObjects, service: 
         await repo.import_objects_from_files(infrahub_branch_name=message.infrahub_branch_name, commit=message.commit)
 
 
-@flow(name="git-repository-pull-read-only")
-async def pull_read_only(message: messages.GitRepositoryPullReadOnly, service: InfrahubServices) -> None:
-    if not message.ref and not message.commit:
-        log.warning(
-            "No commit or ref in GitRepositoryPullReadOnly message",
-            name=message.repository_name,
-            repository_id=message.repository_id,
-        )
-        return
-    log.info(
-        "Pulling read-only repository",
-        repository=message.repository_name,
-        location=message.location,
-        ref=message.ref,
-        commit=message.commit,
-    )
-    async with service.git_report(
-        related_node=message.repository_id, title="Pulling read-only repository"
-    ) as git_report:
-        async with lock.registry.get(name=message.repository_name, namespace="repository"):
-            init_failed = False
-            try:
-                repo = await InfrahubReadOnlyRepository.init(
-                    id=message.repository_id,
-                    name=message.repository_name,
-                    location=message.location,
-                    client=service.client,
-                    ref=message.ref,
-                    infrahub_branch_name=message.infrahub_branch_name,
-                    task_report=git_report,
-                )
-            except RepositoryError:
-                init_failed = True
-
-            if init_failed:
-                repo = await InfrahubReadOnlyRepository.new(
-                    id=message.repository_id,
-                    name=message.repository_name,
-                    location=message.location,
-                    client=service.client,
-                    ref=message.ref,
-                    infrahub_branch_name=message.infrahub_branch_name,
-                    task_report=git_report,
-                )
-
-            await repo.import_objects_from_files(
-                infrahub_branch_name=message.infrahub_branch_name, commit=message.commit
-            )
-            await repo.sync_from_remote(commit=message.commit)
-
-
 @flow(name="git-repository-merge")
 async def merge(message: messages.GitRepositoryMerge, service: InfrahubServices) -> None:
     log.info(

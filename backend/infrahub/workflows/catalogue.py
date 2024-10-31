@@ -122,6 +122,16 @@ GIT_REPOSITORIES_CREATE_BRANCH = WorkflowDefinition(
     branch_support=BranchSupportType.AWARE,
     tags=[WorkflowTag.DATABASE_CHANGE],
 )
+
+GIT_REPOSITORIES_PULL_READ_ONLY = WorkflowDefinition(
+    name="git-repository-pull-read-only",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.git.tasks",
+    function="pull_read_only",
+    branch_support=BranchSupportType.AWARE,
+    tags=[WorkflowTag.DATABASE_CHANGE],
+)
+
 BRANCH_REBASE = WorkflowDefinition(
     name="branch-rebase",
     type=WorkflowType.INTERNAL,
@@ -160,4 +170,5 @@ workflows = [
     REQUEST_GENERATOR_RUN,
     REQUEST_DIFF_UPDATE,
     REQUEST_DIFF_REFRESH,
+    GIT_REPOSITORIES_PULL_READ_ONLY,
 ]

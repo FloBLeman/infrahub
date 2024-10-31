@@ -33,3 +33,14 @@ class RequestArtifactGenerate(BaseModel):
     query: str = Field(..., description="The name of the query to use when collecting data")
     timeout: int = Field(..., description="Timeout for requests used to generate this artifact")
     variables: dict = Field(..., description="Input variables when generating the artifact")
+
+
+class GitRepositoryPullReadOnly(BaseModel):
+    """Update a read-only repository to the latest commit for its ref"""
+
+    location: str = Field(..., description="The external URL of the repository")
+    repository_id: str = Field(..., description="The unique ID of the Repository")
+    repository_name: str = Field(..., description="The name of the repository")
+    ref: Optional[str] = Field(None, description="Ref to track on the external repository")
+    commit: Optional[str] = Field(None, description="Specific commit to pull")
+    infrahub_branch_name: str = Field(..., description="Infrahub branch on which to sync the remote repository")
