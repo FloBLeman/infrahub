@@ -8,6 +8,7 @@ from infrahub.core.branch import Branch
 from infrahub.core.initialization import (
     create_branch,
 )
+from infrahub.core.manager import NodeManager
 from infrahub.core.node import Node
 from infrahub.database import InfrahubDatabase
 from infrahub.exceptions import InitializationError, SchemaNotFoundError
@@ -363,6 +364,29 @@ class TestSchemaLifecycleBranch(TestSchemaLifecycleBase):
         assert registry.schema.has(name=TAG_KIND) is True
         # FIXME after loading the new schema, TestingTag is still present in the branch, need to investigate
         # assert registry.schema.has(name=TAG_KIND, branch=self.branch1) is False
+
+        # check that tag attributes/relationships are deleted on branch
+        attr_schemas = await NodeManager.query(
+            db=db, branch=self.branch1, schema="SchemaAttribute", filters={"node__id": tag_schema.id}
+        )
+        assert len(attr_schemas) == 0
+        rel_schemas = await NodeManager.query(
+            db=db, branch=self.branch1, schema="SchemaRelationship", filters={"node__id": tag_schema.id}
+        )
+        assert len(rel_schemas) == 0
+        # check that tag attributes/relationships still exist on main
+        attr_schemas = await NodeManager.query(db=db, schema="SchemaAttribute", filters={"node__id": tag_schema.id})
+        assert len(attr_schemas) == 1
+        assert {a.name.value for a in attr_schemas} == {"name"}
+        rel_schemas = await NodeManager.query(db=db, schema="SchemaRelationship", filters={"node__id": tag_schema.id})
+        assert len(rel_schemas) == 5
+        assert {r.name.value for r in rel_schemas} == {
+            "cars",
+            "persons",
+            "profiles",
+            "subscriber_of_groups",
+            "member_of_groups",
+        }
 
         tags = await registry.manager.query(db=db, schema=TAG_KIND)
         assert len(tags) == 2
