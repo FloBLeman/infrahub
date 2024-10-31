@@ -47,6 +47,7 @@ if TYPE_CHECKING:
     from infrahub_sdk.schema import InfrahubRepositoryArtifactDefinitionConfig
     from infrahub_sdk.transforms import InfrahubTransform
 
+    from infrahub.git.models import RequestArtifactGenerate
     from infrahub.message_bus import messages
 
 # pylint: disable=too-many-lines
@@ -1228,11 +1229,9 @@ class InfrahubRepositoryIntegrator(InfrahubRepositoryBase):  # pylint: disable=t
 
             module = importlib.import_module(file_info.module_name)
 
-            transform_class: InfrahubTransform = getattr(module, class_name)
+            transform_class: type[InfrahubTransform] = getattr(module, class_name)
 
-            transform = await transform_class.init(
-                root_directory=commit_worktree.directory, branch=branch_name, client=client
-            )
+            transform = transform_class(root_directory=commit_worktree.directory, branch=branch_name, client=client)
             return await transform.run(data=data)
 
         except ModuleNotFoundError as exc:
@@ -1313,7 +1312,7 @@ class InfrahubRepositoryIntegrator(InfrahubRepositoryBase):  # pylint: disable=t
         return ArtifactGenerateResult(changed=True, checksum=checksum, storage_id=storage_id, artifact_id=artifact.id)
 
     async def render_artifact(
-        self, artifact: CoreArtifact, message: Union[messages.CheckArtifactCreate, messages.RequestArtifactGenerate]
+        self, artifact: CoreArtifact, message: Union[messages.CheckArtifactCreate, RequestArtifactGenerate]
     ) -> ArtifactGenerateResult:
         response = await self.sdk.query_gql_query(
             name=message.query,

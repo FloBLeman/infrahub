@@ -19,11 +19,11 @@ import { FieldValues, useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 
 import DropdownField from "@/components/form/fields/dropdown.field";
-import InputField from "@/components/form/fields/input.field";
 import RelationshipField from "@/components/form/fields/relationship.field";
 import { getRelationshipDefaultValue } from "@/components/form/utils/getRelationshipDefaultValue";
 import { isRequired } from "@/components/form/utils/validation";
 import { useSchema } from "@/hooks/useSchema";
+import { globalDecisionOptions } from "./constants";
 
 interface NumberPoolFormProps extends Pick<NodeFormProps, "onSuccess"> {
   currentObject?: Record<string, AttributeType | RelationshipType>;
@@ -46,7 +46,6 @@ export const GlobalPermissionForm = ({
   });
 
   const defaultValues = {
-    name: getCurrentFieldValue("name", currentObject),
     action: getCurrentFieldValue("action", currentObject),
     decision: getCurrentFieldValue("decision", currentObject),
     roles,
@@ -66,17 +65,6 @@ export const GlobalPermissionForm = ({
         value: choice.name,
       };
     });
-
-  const decisionOptions = [
-    {
-      value: 1,
-      label: "Deny",
-    },
-    {
-      value: 6,
-      label: "Allow",
-    },
-  ];
 
   async function handleSubmit(data: Record<string, FormFieldValue>) {
     try {
@@ -127,17 +115,6 @@ export const GlobalPermissionForm = ({
   return (
     <div className={"bg-custom-white flex flex-col flex-1 overflow-auto p-4"}>
       <Form form={form} onSubmit={handleSubmit}>
-        <InputField
-          name="name"
-          label="Name"
-          rules={{
-            required: true,
-            validate: {
-              required: isRequired,
-            },
-          }}
-        />
-
         <DropdownField
           name="action"
           label="Action"
@@ -148,7 +125,10 @@ export const GlobalPermissionForm = ({
         <DropdownField
           name="decision"
           label="Decision"
-          items={decisionOptions}
+          description={
+            schema?.attributes?.find((attribute) => attribute.name === "decision")?.description
+          }
+          items={globalDecisionOptions}
           rules={{ required: true, validate: { required: isRequired } }}
         />
 

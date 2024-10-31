@@ -45,7 +45,6 @@ from infrahub.core.schema import (
 from infrahub.core.schema.definitions.core import core_profile_schema_definition
 from infrahub.core.validators import CONSTRAINT_VALIDATOR_MAP
 from infrahub.exceptions import SchemaNotFoundError, ValidationError
-from infrahub.graphql.manager import GraphQLSchemaManager
 from infrahub.log import get_logger
 from infrahub.types import ATTRIBUTE_TYPES
 from infrahub.utils import format_label
@@ -56,7 +55,6 @@ from .constants import INTERNAL_SCHEMA_NODE_KINDS, SchemaNamespace
 log = get_logger()
 
 if TYPE_CHECKING:
-    from graphql import GraphQLSchema
     from pydantic import ValidationInfo
 
 
@@ -70,8 +68,6 @@ class SchemaBranch:
         self.nodes: dict[str, str] = {}
         self.generics: dict[str, str] = {}
         self.profiles: dict[str, str] = {}
-        self._graphql_schema: Optional[GraphQLSchema] = None
-        self._graphql_manager: Optional[GraphQLSchemaManager] = None
 
         if data:
             self.nodes = data.get("nodes", {})
@@ -122,7 +118,7 @@ class SchemaBranch:
     def get_hash(self) -> str:
         """Calculate the hash for this objects based on the content of nodes and generics.
 
-        Since the object themselves are considered immuable we just need to use the hash from each object to calculate the global hash.
+        Since the object themselves are considered immutable we just need to use the hash from each object to calculate the global hash.
         """
         md5hash = hashlib.md5(usedforsecurity=False)
         for key, value in sorted(tuple(self.nodes.items()) + tuple(self.generics.items())):
@@ -164,31 +160,6 @@ class SchemaBranch:
                 cache[node_hash] = node
 
         return cls(cache=cache, data=nodes)
-
-    def clear_cache(self) -> None:
-        self._graphql_manager = None
-        self._graphql_schema = None
-
-    def get_graphql_manager(self) -> GraphQLSchemaManager:
-        if not self._graphql_manager:
-            self._graphql_manager = GraphQLSchemaManager(schema=self)
-        return self._graphql_manager
-
-    def get_graphql_schema(
-        self,
-        include_query: bool = True,
-        include_mutation: bool = True,
-        include_subscription: bool = True,
-        include_types: bool = True,
-    ) -> GraphQLSchema:
-        if not self._graphql_schema:
-            self._graphql_schema = self.get_graphql_manager().generate(
-                include_query=include_query,
-                include_mutation=include_mutation,
-                include_subscription=include_subscription,
-                include_types=include_types,
-            )
-        return self._graphql_schema
 
     def diff(self, other: SchemaBranch) -> SchemaDiff:
         # Identify the nodes or generics that have been added or removed
@@ -500,6 +471,7 @@ class SchemaBranch:
         self.validate_required_relationships()
 
     def process_post_validation(self) -> None:
+        self.cleanup_inherited_elements()
         self.add_groups()
         self.add_hierarchy()
         self.generate_weight()
@@ -659,7 +631,13 @@ class SchemaBranch:
                 if len(constraint_paths) > 1:
                     continue
                 constraint_path = constraint_paths[0]
-                schema_attribute_path = node_schema.parse_schema_path(path=constraint_path, schema=self)
+                try:
+                    schema_attribute_path = node_schema.parse_schema_path(path=constraint_path, schema=self)
+                except AttributePathParsingError as exc:
+                    raise ValueError(
+                        f"{node_schema.kind}: Requested unique constraint not found within node. (`{constraint_path}`)"
+                    ) from exc
+
                 if (
                     schema_attribute_path.is_type_attribute
                     and schema_attribute_path.attribute_property_name == "value"
@@ -1295,6 +1273,50 @@ class SchemaBranch:
                     item.order_weight = current_weight
 
             self.set(name=name, schema=node)
+
+    def cleanup_inherited_elements(self) -> None:
+        # pylint: disable=too-many-branches
+        for name in self.node_names:
+            node = self.get_node(name=name, duplicate=False)
+
+            attributes_to_delete = []
+            relationships_to_delete = []
+
+            inherited_attribute_names = set(node.attribute_names) - set(node.local_attribute_names)
+            inherited_relationship_names = set(node.relationship_names) - set(node.local_relationship_names)
+            for item_name in inherited_attribute_names:
+                found = False
+                for generic_name in node.inherit_from:
+                    generic = self.get_generic(name=generic_name, duplicate=False)
+                    if item_name in generic.attribute_names:
+                        attr = generic.get_attribute(name=item_name)
+                        if attr.state != HashableModelState.ABSENT:
+                            found = True
+                if not found:
+                    attributes_to_delete.append(item_name)
+
+            for item_name in inherited_relationship_names:
+                found = False
+                for generic_name in node.inherit_from:
+                    generic = self.get_generic(name=generic_name, duplicate=False)
+                    if item_name in generic.relationship_names:
+                        rel = generic.get_relationship(name=item_name)
+                        if rel.state != HashableModelState.ABSENT:
+                            found = True
+                if not found:
+                    relationships_to_delete.append(item_name)
+
+            # If there is either an attribute or a relationship to delete
+            # We clone the node and we set the attribute / relationship as ABSENT
+            if attributes_to_delete or relationships_to_delete:
+                node_copy = self.get_node(name=name, duplicate=True)
+                for item_name in attributes_to_delete:
+                    attr = node_copy.get_attribute(name=item_name)
+                    attr.state = HashableModelState.ABSENT
+                for item_name in relationships_to_delete:
+                    rel = node_copy.get_relationship(name=item_name)
+                    rel.state = HashableModelState.ABSENT
+                self.set(name=name, schema=node_copy)
 
     def add_groups(self) -> None:
         if not self.has(name=InfrahubKind.GENERICGROUP):

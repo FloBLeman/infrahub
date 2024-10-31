@@ -55,7 +55,8 @@ from infrahub.core.utils import delete_all_nodes
 from infrahub.database import InfrahubDatabase
 from infrahub.dependencies.registry import build_component_registry
 from infrahub.git import InfrahubRepository
-from infrahub.utils import format_label
+from infrahub.services import InfrahubServices, services
+from infrahub.services.adapters.workflow.local import WorkflowLocalExecution
 from tests.helpers.file_repo import FileRepo
 from tests.helpers.test_client import dummy_async_request
 from tests.test_data import dataset01 as ds01
@@ -2541,10 +2542,7 @@ async def create_test_admin(db: InfrahubDatabase, register_core_models_schema, d
     permissions: list[Node] = []
     global_permission = await Node.init(db=db, schema=InfrahubKind.GLOBALPERMISSION)
     await global_permission.new(
-        db=db,
-        name=format_label(GlobalPermissions.SUPER_ADMIN.value),
-        action=GlobalPermissions.SUPER_ADMIN.value,
-        decision=PermissionDecision.ALLOW_ALL.value,
+        db=db, action=GlobalPermissions.SUPER_ADMIN.value, decision=PermissionDecision.ALLOW_ALL.value
     )
     await global_permission.save(db=db)
     permissions.append(global_permission)
@@ -2622,6 +2620,14 @@ async def second_account(db: InfrahubDatabase, data_schema, node_group_schema, r
     await obj.new(db=db, name="Second Account", account_type="Git", password="SecondPassword123")
     await obj.save(db=db)
     return obj
+
+
+@pytest.fixture
+async def session_second_account(db: InfrahubDatabase, second_account) -> AccountSession:
+    session = AccountSession(
+        authenticated=True, auth_type=AuthType.API, account_id=second_account.id, role="read-write"
+    )
+    return session
 
 
 @pytest.fixture
@@ -2923,3 +2929,23 @@ async def prefix_pool_01(
     ip_dataset_prefix_v4["prefix_pool"] = prefix_pool
 
     return ip_dataset_prefix_v4
+
+
+@pytest.fixture()
+def workflow_local():
+    original = config.OVERRIDE.workflow
+    workflow = WorkflowLocalExecution()
+    config.OVERRIDE.workflow = workflow
+    yield workflow
+    config.OVERRIDE.workflow = original
+
+
+@pytest.fixture
+def init_service(db: InfrahubDatabase):
+    original = services.service
+    database = db
+    workflow = WorkflowLocalExecution()
+    service = InfrahubServices(database=database, workflow=workflow)
+    services.service = service
+    yield service
+    services.service = original

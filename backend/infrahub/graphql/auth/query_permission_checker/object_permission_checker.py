@@ -1,3 +1,4 @@
+from infrahub import config
 from infrahub.auth import AccountSession
 from infrahub.core import registry
 from infrahub.core.account import GlobalPermission, ObjectPermission
@@ -19,7 +20,7 @@ class ObjectPermissionChecker(GraphQLQueryPermissionCheckerInterface):
     """Checker that makes sure a user account can perform some action on some kind of objects."""
 
     async def supports(self, db: InfrahubDatabase, account_session: AccountSession, branch: Branch) -> bool:
-        return account_session.authenticated
+        return config.SETTINGS.main.allow_anonymous_access or account_session.authenticated
 
     async def check(
         self,
@@ -61,7 +62,6 @@ class ObjectPermissionChecker(GraphQLQueryPermissionCheckerInterface):
                 extracted_words = extract_camelcase_words(kind)
                 permissions.append(
                     ObjectPermission(
-                        id="",
                         namespace=extracted_words[0],
                         name="".join(extracted_words[1:]),
                         action=action.lower(),
@@ -73,12 +73,12 @@ class ObjectPermissionChecker(GraphQLQueryPermissionCheckerInterface):
             has_permission = False
             for permission_backend in registry.permission_backends:
                 has_permission = await permission_backend.has_permission(
-                    db=db, account_id=account_session.account_id, permission=permission, branch=branch
+                    db=db, account_session=account_session, permission=permission, branch=branch
                 )
             if not has_permission:
                 raise PermissionDeniedError(f"You do not have the following permission: {permission}")
 
-        return CheckerResolution.NEXT_CHECKER
+        return CheckerResolution.TERMINATE
 
 
 class AccountManagerPermissionChecker(GraphQLQueryPermissionCheckerInterface):
@@ -88,11 +88,11 @@ class AccountManagerPermissionChecker(GraphQLQueryPermissionCheckerInterface):
     """
 
     permission_required = GlobalPermission(
-        id="", name="", action=GlobalPermissions.MANAGE_ACCOUNTS.value, decision=PermissionDecision.ALLOW_ALL.value
+        action=GlobalPermissions.MANAGE_ACCOUNTS.value, decision=PermissionDecision.ALLOW_ALL.value
     )
 
     async def supports(self, db: InfrahubDatabase, account_session: AccountSession, branch: Branch) -> bool:
-        return account_session.authenticated
+        return config.SETTINGS.main.allow_anonymous_access or account_session.authenticated
 
     async def check(
         self,
@@ -122,7 +122,7 @@ class AccountManagerPermissionChecker(GraphQLQueryPermissionCheckerInterface):
         has_permission = False
         for permission_backend in registry.permission_backends:
             if has_permission := await permission_backend.has_permission(
-                db=db, account_id=account_session.account_id, permission=self.permission_required, branch=branch
+                db=db, account_session=account_session, permission=self.permission_required, branch=branch
             ):
                 break
 
@@ -139,11 +139,11 @@ class PermissionManagerPermissionChecker(GraphQLQueryPermissionCheckerInterface)
     """
 
     permission_required = GlobalPermission(
-        id="", name="", action=GlobalPermissions.MANAGE_PERMISSIONS.value, decision=PermissionDecision.ALLOW_ALL.value
+        action=GlobalPermissions.MANAGE_PERMISSIONS.value, decision=PermissionDecision.ALLOW_ALL.value
     )
 
     async def supports(self, db: InfrahubDatabase, account_session: AccountSession, branch: Branch) -> bool:
-        return account_session.authenticated
+        return config.SETTINGS.main.allow_anonymous_access or account_session.authenticated
 
     async def check(
         self,
@@ -170,7 +170,7 @@ class PermissionManagerPermissionChecker(GraphQLQueryPermissionCheckerInterface)
 
         for permission_backend in registry.permission_backends:
             if not await permission_backend.has_permission(
-                db=db, account_id=account_session.account_id, permission=self.permission_required, branch=branch
+                db=db, account_session=account_session, permission=self.permission_required, branch=branch
             ):
                 raise PermissionDeniedError("You do not have the permission to manage permissions")
 
@@ -184,11 +184,11 @@ class RepositoryManagerPermissionChecker(GraphQLQueryPermissionCheckerInterface)
     """
 
     permission_required = GlobalPermission(
-        id="", name="", action=GlobalPermissions.MANAGE_REPOSITORIES.value, decision=PermissionDecision.ALLOW_ALL.value
+        action=GlobalPermissions.MANAGE_REPOSITORIES.value, decision=PermissionDecision.ALLOW_ALL.value
     )
 
     async def supports(self, db: InfrahubDatabase, account_session: AccountSession, branch: Branch) -> bool:
-        return account_session.authenticated
+        return config.SETTINGS.main.allow_anonymous_access or account_session.authenticated
 
     async def check(
         self,
@@ -215,7 +215,7 @@ class RepositoryManagerPermissionChecker(GraphQLQueryPermissionCheckerInterface)
 
         for permission_backend in registry.permission_backends:
             if not await permission_backend.has_permission(
-                db=db, account_id=account_session.account_id, permission=self.permission_required, branch=branch
+                db=db, account_session=account_session, permission=self.permission_required, branch=branch
             ):
                 raise PermissionDeniedError("You do not have the permission to manage repositories")
 

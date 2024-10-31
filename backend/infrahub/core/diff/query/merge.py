@@ -351,8 +351,12 @@ CALL {
                 // with different is_default values
                 // ------------------------------
                 WITH attr_rel, property_diff
-                OPTIONAL MATCH (attr_rel)-[r_attr_val:HAS_VALUE]->(av:AttributeValue {value: property_diff.value})
+                OPTIONAL MATCH (attr_rel)-[r_attr_val:HAS_VALUE]->(av:AttributeValue)
                 WHERE property_diff.property_type = "HAS_VALUE"
+                AND (
+                    av.value = property_diff.value
+                    OR toLower(toString(av.value)) = toLower(toString(property_diff.value))
+                )
                 AND r_attr_val.branch IN [$source_branch, $target_branch]
                 RETURN av
                 ORDER BY r_attr_val.from DESC
@@ -386,7 +390,7 @@ CALL {
             WHERE type(r_prop) = prop_type
             AND r_prop.status = prop_rel_status
             AND r_prop.from <= $at
-            AND (r_prop.to >= $at OR r_prop.to IS NULL)
+            AND (r_prop.to > $at OR r_prop.to IS NULL)
             RETURN r_prop
         }
         WITH attr_rel, prop_rel_status, prop_type, prop_node, r_prop

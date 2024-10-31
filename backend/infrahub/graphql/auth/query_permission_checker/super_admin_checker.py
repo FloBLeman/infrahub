@@ -1,3 +1,4 @@
+from infrahub import config
 from infrahub.auth import AccountSession
 from infrahub.core import registry
 from infrahub.core.account import GlobalPermission
@@ -14,11 +15,11 @@ class SuperAdminPermissionChecker(GraphQLQueryPermissionCheckerInterface):
     """Checker allows a user to do anything (if the checker runs first)."""
 
     permission_required = GlobalPermission(
-        id="", name="", action=GlobalPermissions.SUPER_ADMIN.value, decision=PermissionDecision.ALLOW_ALL.value
+        action=GlobalPermissions.SUPER_ADMIN.value, decision=PermissionDecision.ALLOW_ALL.value
     )
 
     async def supports(self, db: InfrahubDatabase, account_session: AccountSession, branch: Branch) -> bool:
-        return account_session.authenticated
+        return config.SETTINGS.main.allow_anonymous_access or account_session.authenticated
 
     async def check(
         self,
@@ -30,7 +31,7 @@ class SuperAdminPermissionChecker(GraphQLQueryPermissionCheckerInterface):
     ) -> CheckerResolution:
         for permission_backend in registry.permission_backends:
             if await permission_backend.has_permission(
-                db=db, account_id=account_session.account_id, permission=self.permission_required, branch=branch
+                db=db, account_session=account_session, permission=self.permission_required, branch=branch
             ):
                 return CheckerResolution.TERMINATE
 

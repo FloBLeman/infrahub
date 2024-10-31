@@ -67,7 +67,7 @@ class CoreArtifactTarget(CoreNode):
 
 
 class CoreBasePermission(CoreNode):
-    decision: Enum
+    description: StringOptional
     identifier: StringOptional
     roles: RelationshipManager
 
@@ -143,6 +143,7 @@ class CoreMenu(CoreNode):
     icon: StringOptional
     protected: Boolean
     order_weight: Integer
+    required_permissions: ListAttributeOptional
     section: Enum
     parent: RelationshipManager
     children: RelationshipManager
@@ -215,7 +216,7 @@ class CoreAccount(LineageOwner, LineageSource, CoreGenericAccount):
     pass
 
 
-class CoreAccountGroup(CoreGroup):
+class CoreAccountGroup(LineageOwner, LineageSource, CoreGroup):
     roles: RelationshipManager
 
 
@@ -343,8 +344,8 @@ class CoreGeneratorValidator(CoreValidator):
 
 
 class CoreGlobalPermission(CoreBasePermission):
-    name: String
     action: Dropdown
+    decision: Enum
 
 
 class CoreGraphQLQuery(CoreNode):
@@ -395,6 +396,7 @@ class CoreObjectPermission(CoreBasePermission):
     namespace: String
     name: String
     action: Enum
+    decision: Enum
 
 
 class CoreObjectThread(CoreThread):
