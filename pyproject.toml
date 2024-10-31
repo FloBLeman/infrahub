@@ -520,7 +520,6 @@ ignore = [
     "PLW1508",  # Invalid type for environment variable default; expected `str` or `None`
     "PTH100",   # `os.path.abspath()` should be replaced by `Path.resolve()`
     "PTH102",   # `os.mkdir()` should be replaced by `Path.mkdir()`
-    "PTH103",   # `os.makedirs()` should be replaced by `Path.mkdir(parents=True)`
     "PTH107",   # `os.remove()` should be replaced by `Path.unlink()`
     "PTH108",   # `os.unlink()` should be replaced by `Path.unlink()`
     "PTH109",   # `os.getcwd()` should be replaced by `Path.cwd()`
