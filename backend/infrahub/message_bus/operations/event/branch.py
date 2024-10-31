@@ -15,6 +15,7 @@ from infrahub.workflows.catalogue import (
     REQUEST_DIFF_REFRESH,
     REQUEST_DIFF_UPDATE,
     TRIGGER_ARTIFACT_DEFINITION_GENERATE,
+    TRIGGER_GENERATOR_DEFINITION_RUN,
 )
 
 log = get_logger()
@@ -56,7 +57,6 @@ async def merge(message: messages.EventBranchMerge, service: InfrahubServices) -
 
     events: List[InfrahubMessage] = [
         messages.RefreshRegistryBranches(),
-        messages.TriggerGeneratorDefinitionRun(branch=message.target_branch),
     ]
     component_registry = get_component_registry()
     default_branch = registry.get_branch_from_registry()
@@ -66,6 +66,11 @@ async def merge(message: messages.EventBranchMerge, service: InfrahubServices) -
 
     await service.workflow.submit_workflow(
         workflow=TRIGGER_ARTIFACT_DEFINITION_GENERATE,
+        parameters={"branch": message.target_branch},
+    )
+
+    await service.workflow.submit_workflow(
+        workflow=TRIGGER_GENERATOR_DEFINITION_RUN,
         parameters={"branch": message.target_branch},
     )
 
