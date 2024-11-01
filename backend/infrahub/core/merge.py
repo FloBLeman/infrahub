@@ -10,8 +10,9 @@ from infrahub.core.registry import registry
 from infrahub.core.schema import GenericSchema, NodeSchema
 from infrahub.core.timestamp import Timestamp
 from infrahub.exceptions import ValidationError
-from infrahub.message_bus import messages
 
+from ..git.models import GitRepositoryMerge
+from ..workflows.catalogue import GIT_REPOSITORIES_MERGE
 from .diff.branch_differ import BranchDiffer
 
 if TYPE_CHECKING:
@@ -261,7 +262,6 @@ class BranchMerger:
         repos_in_main = {repo.id: repo for repo in repos_in_main_list}
 
         repos_in_branch_list = await NodeManager.query(schema=CoreRepository, db=self.db, branch=self.source_branch)
-        events = []
         for repo in repos_in_branch_list:
             # Check if the repo, exist in main, if not ignore this repo
             if repo.id not in repos_in_main:
@@ -271,16 +271,14 @@ class BranchMerger:
                 continue
 
             if self.source_branch.sync_with_git or repo.internal_status.value == RepositoryInternalStatus.STAGING.value:
-                events.append(
-                    messages.GitRepositoryMerge(
-                        repository_id=repo.id,
-                        repository_name=repo.name.value,
-                        internal_status=repo.internal_status.value,
-                        source_branch=self.source_branch.name,
-                        destination_branch=registry.default_branch,
-                        default_branch=repo.default_branch.value,
-                    )
+                model = GitRepositoryMerge(
+                    repository_id=repo.id,
+                    repository_name=repo.name.value,
+                    internal_status=repo.internal_status.value,
+                    source_branch=self.source_branch.name,
+                    destination_branch=registry.default_branch,
+                    default_branch=repo.default_branch.value,
                 )
-
-        for event in events:
-            await self.service.send(message=event)
+                await self.service.workflow.submit_workflow(
+                    workflow=GIT_REPOSITORIES_MERGE, parameters={"model": model}
+                )

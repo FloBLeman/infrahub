@@ -12,7 +12,12 @@ from ..log import get_logger
 from ..tasks.artifact import define_artifact
 from ..workflows.catalogue import REQUEST_ARTIFACT_DEFINITION_GENERATE, REQUEST_ARTIFACT_GENERATE
 from ..workflows.utils import add_branch_tag
-from .models import GitRepositoryPullReadOnly, RequestArtifactDefinitionGenerate, RequestArtifactGenerate
+from .models import (
+    GitRepositoryMerge,
+    GitRepositoryPullReadOnly,
+    RequestArtifactDefinitionGenerate,
+    RequestArtifactGenerate,
+)
 from .repository import InfrahubReadOnlyRepository, InfrahubRepository, get_initialized_repo
 
 log = get_logger()
@@ -275,3 +280,39 @@ async def pull_read_only(model: GitRepositoryPullReadOnly) -> None:
 
             await repo.import_objects_from_files(infrahub_branch_name=model.infrahub_branch_name, commit=model.commit)
             await repo.sync_from_remote(commit=model.commit)
+
+
+@flow(name="git-repository-merge")
+async def merge_git_repository(model: GitRepositoryMerge) -> None:
+    service = services.service
+    log.info(
+        "Merging repository branch",
+        repository_name=model.repository_name,
+        repository_id=model.repository_id,
+        source_branch=model.source_branch,
+        destination_branch=model.destination_branch,
+    )
+
+    repo = await InfrahubRepository.init(
+        id=model.repository_id,
+        name=model.repository_name,
+        client=service.client,
+        default_branch_name=model.default_branch,
+    )
+
+    if model.internal_status == RepositoryInternalStatus.STAGING.value:
+        repo_source = await service.client.get(
+            kind=InfrahubKind.GENERICREPOSITORY, id=model.repository_id, branch=model.source_branch
+        )
+        repo_main = await service.client.get(kind=InfrahubKind.GENERICREPOSITORY, id=model.repository_id)
+        repo_main.internal_status.value = RepositoryInternalStatus.ACTIVE.value
+        repo_main.sync_status.value = repo_source.sync_status.value
+
+        commit = repo.get_commit_value(branch_name=repo.default_branch, remote=False)
+        repo_main.commit.value = commit
+
+        await repo_main.save()
+
+    else:
+        async with lock.registry.get(name=model.repository_name, namespace="repository"):
+            await repo.merge(source_branch=model.source_branch, dest_branch=model.destination_branch)

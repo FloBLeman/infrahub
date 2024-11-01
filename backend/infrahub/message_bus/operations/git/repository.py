@@ -1,7 +1,7 @@
 from prefect import flow
 
 from infrahub import lock
-from infrahub.core.constants import InfrahubKind, RepositoryInternalStatus
+from infrahub.core.constants import RepositoryInternalStatus
 from infrahub.exceptions import RepositoryError
 from infrahub.git.repository import InfrahubReadOnlyRepository, InfrahubRepository, get_initialized_repo
 from infrahub.log import get_logger
@@ -102,38 +102,3 @@ async def import_objects(message: messages.GitRepositoryImportObjects, service: 
         )
         repo.task_report = git_report
         await repo.import_objects_from_files(infrahub_branch_name=message.infrahub_branch_name, commit=message.commit)
-
-
-@flow(name="git-repository-merge")
-async def merge(message: messages.GitRepositoryMerge, service: InfrahubServices) -> None:
-    log.info(
-        "Merging repository branch",
-        repository_name=message.repository_name,
-        repository_id=message.repository_id,
-        source_branch=message.source_branch,
-        destination_branch=message.destination_branch,
-    )
-
-    repo = await InfrahubRepository.init(
-        id=message.repository_id,
-        name=message.repository_name,
-        client=service.client,
-        default_branch_name=message.default_branch,
-    )
-
-    if message.internal_status == RepositoryInternalStatus.STAGING.value:
-        repo_source = await service.client.get(
-            kind=InfrahubKind.GENERICREPOSITORY, id=message.repository_id, branch=message.source_branch
-        )
-        repo_main = await service.client.get(kind=InfrahubKind.GENERICREPOSITORY, id=message.repository_id)
-        repo_main.internal_status.value = RepositoryInternalStatus.ACTIVE.value
-        repo_main.sync_status.value = repo_source.sync_status.value
-
-        commit = repo.get_commit_value(branch_name=repo.default_branch, remote=False)
-        repo_main.commit.value = commit
-
-        await repo_main.save()
-
-    else:
-        async with lock.registry.get(name=message.repository_name, namespace="repository"):
-            await repo.merge(source_branch=message.source_branch, dest_branch=message.destination_branch)

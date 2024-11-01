@@ -44,3 +44,14 @@ class GitRepositoryPullReadOnly(BaseModel):
     ref: Optional[str] = Field(None, description="Ref to track on the external repository")
     commit: Optional[str] = Field(None, description="Specific commit to pull")
     infrahub_branch_name: str = Field(..., description="Infrahub branch on which to sync the remote repository")
+
+
+class GitRepositoryMerge(BaseModel):
+    """Merge one branch into another."""
+
+    repository_id: str = Field(..., description="The unique ID of the Repository")
+    repository_name: str = Field(..., description="The name of the repository")
+    internal_status: str = Field(..., description="Administrative status of the repository")
+    source_branch: str = Field(..., description="The source branch")
+    destination_branch: str = Field(..., description="The source branch")
+    default_branch: str = Field(..., description="The default branch in Git")
