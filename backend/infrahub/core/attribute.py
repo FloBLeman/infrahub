@@ -396,12 +396,15 @@ class BaseAttribute(FlagPropertyMixin, NodePropertyMixin):
         self.validate(value=self.value, name=self.name, schema=self.schema)
 
         # Check if the current value is still the default one
-        if (
-            self.is_default
-            and (self.schema.default_value is not None and self.schema.default_value != self.value)
-            or (self.schema.default_value is None and self.value is not None)
-        ):
-            self.is_default = False
+        if self.is_default:
+            if isinstance(self.value, Enum):
+                has_default_value = self.schema.default_value == self.value.value
+            else:
+                has_default_value = self.schema.default_value == self.value
+            if (self.schema.default_value is not None and not has_default_value) or (
+                self.schema.default_value is None and self.value is not None
+            ):
+                self.is_default = False
 
         query = await NodeListGetAttributeQuery.init(
             db=db,
