@@ -50,9 +50,9 @@ from .queries import (
     InfrahubSearchAnywhere,
     InfrahubStatus,
     Relationship,
-    Task,
 )
 from .queries.diff.tree import DiffTreeQuery, DiffTreeSummaryQuery
+from .queries.task import Task
 
 
 class InfrahubBaseQuery(ObjectType):
