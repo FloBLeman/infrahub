@@ -62,6 +62,13 @@ TRIGGER_ARTIFACT_DEFINITION_GENERATE = WorkflowDefinition(
     function="generate_artifact_definition",
 )
 
+TRIGGER_GENERATOR_DEFINITION_RUN = WorkflowDefinition(
+    name="generator_definition_run",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.generators.tasks",
+    function="run_generator_definition",
+)
+
 IPAM_RECONCILIATION = WorkflowDefinition(
     name="ipam_reconciliation",
     type=WorkflowType.INTERNAL,
@@ -171,4 +178,5 @@ workflows = [
     REQUEST_DIFF_UPDATE,
     REQUEST_DIFF_REFRESH,
     GIT_REPOSITORIES_PULL_READ_ONLY,
+    TRIGGER_GENERATOR_DEFINITION_RUN,
 ]
