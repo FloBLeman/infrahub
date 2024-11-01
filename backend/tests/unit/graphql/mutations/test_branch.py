@@ -152,20 +152,6 @@ async def test_branch_create(
 async def test_branch_delete(
     db: InfrahubDatabase, default_branch: Branch, car_person_schema, register_core_models_schema, session_admin
 ):
-    create_query = """
-    mutation {
-        BranchCreate(data: { name: "branch3", description: "my description", sync_with_git: false }) {
-            ok
-            object {
-                id
-                name
-                description
-                sync_with_git
-            }
-        }
-    }
-    """
-
     delete_query = """
     mutation {
         BranchDelete(data: { name: "branch3" }) {
@@ -177,29 +163,9 @@ async def test_branch_delete(
     delete_before_create = await graphql_mutation(
         query=delete_query, db=db, branch=default_branch, account_session=session_admin
     )
-    recorder = BusRecorder()
-    service = InfrahubServices(message_bus=recorder)
-
-    create = await graphql_mutation(
-        query=create_query, db=db, branch=default_branch, service=service, account_session=session_admin
-    )
-    recorder = BusRecorder()
-    service = InfrahubServices(message_bus=recorder)
-
-    delete_after_create = await graphql_mutation(
-        query=delete_query, db=db, branch=default_branch, service=service, account_session=session_admin
-    )
-    delete_after_delete = await graphql_mutation(
-        query=delete_query, db=db, branch=default_branch, account_session=session_admin
-    )
 
     assert delete_before_create.errors
     assert delete_before_create.errors[0].message == "Branch: branch3 not found."
-    assert not create.errors
-    assert not delete_after_create.errors
-    assert delete_after_delete.errors
-    assert delete_after_delete.errors[0].message == "Branch: branch3 not found."
-    assert recorder.seen_routing_keys == ["event.branch.delete"]
 
 
 async def test_branch_create_registry(

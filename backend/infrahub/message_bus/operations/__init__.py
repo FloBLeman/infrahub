@@ -26,7 +26,6 @@ COMMAND_MAP = {
     "check.repository.merge_conflicts": check.repository.merge_conflicts,
     "check.repository.user_check": check.repository.user_check,
     "event.branch.create": event.branch.create,
-    "event.branch.delete": event.branch.delete,
     "event.branch.merge": event.branch.merge,
     "event.branch.rebased": event.branch.rebased,
     "event.node.mutated": event.node.mutated,
@@ -47,7 +46,6 @@ COMMAND_MAP = {
     "request.generator_definition.run": requests.generator_definition.run,
     "request.graphql_query_group.update": requests.graphql_query_group.update,
     "request.artifact_definition.check": requests.artifact_definition.check,
-    "request.proposed_change.cancel": requests.proposed_change.cancel,
     "request.proposed_change.data_integrity": requests.proposed_change.data_integrity,
     "request.proposed_change.pipeline": requests.proposed_change.pipeline,
     "request.proposed_change.refresh_artifacts": requests.proposed_change.refresh_artifacts,
@@ -60,7 +58,6 @@ COMMAND_MAP = {
     "send.echo.request": send.echo.request,
     "schema.migration.path": schema.migration.path,
     "schema.validator.path": schema.validator.path,
-    "trigger.proposed_change.cancel": trigger.proposed_change.cancel,
     "trigger.webhook.actions": trigger.webhook.actions,
 }
 
