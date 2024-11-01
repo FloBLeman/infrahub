@@ -33,14 +33,12 @@ from .request_artifactdefinition_check import RequestArtifactDefinitionCheck
 from .request_generatordefinition_check import RequestGeneratorDefinitionCheck
 from .request_generatordefinition_run import RequestGeneratorDefinitionRun
 from .request_graphqlquerygroup_update import RequestGraphQLQueryGroupUpdate
-from .request_proposed_change_cancel import RequestProposedChangeCancel
 from .request_proposedchange_pipeline import RequestProposedChangePipeline
 from .request_repository_checks import RequestRepositoryChecks
 from .request_repository_userchecks import RequestRepositoryUserChecks
 from .schema_migration_path import SchemaMigrationPath, SchemaMigrationPathResponse
 from .schema_validator_path import SchemaValidatorPath, SchemaValidatorPathResponse
 from .send_echo_request import SendEchoRequest, SendEchoRequestResponse
-from .trigger_proposed_change_cancel import TriggerProposedChangeCancel
 from .trigger_webhook_actions import TriggerWebhookActions
 
 MESSAGE_MAP: dict[str, type[InfrahubMessage]] = {
@@ -73,7 +71,6 @@ MESSAGE_MAP: dict[str, type[InfrahubMessage]] = {
     "request.generator_definition.check": RequestGeneratorDefinitionCheck,
     "request.generator_definition.run": RequestGeneratorDefinitionRun,
     "request.graphql_query_group.update": RequestGraphQLQueryGroupUpdate,
-    "request.proposed_change.cancel": RequestProposedChangeCancel,
     "request.proposed_change.data_integrity": RequestProposedChangeDataIntegrity,
     "request.proposed_change.pipeline": RequestProposedChangePipeline,
     "request.proposed_change.refresh_artifacts": RequestProposedChangeRefreshArtifacts,
@@ -84,7 +81,6 @@ MESSAGE_MAP: dict[str, type[InfrahubMessage]] = {
     "request.repository.checks": RequestRepositoryChecks,
     "request.repository.user_checks": RequestRepositoryUserChecks,
     "send.echo.request": SendEchoRequest,
-    "trigger.proposed_change.cancel": TriggerProposedChangeCancel,
     "trigger.webhook.actions": TriggerWebhookActions,
 }
 

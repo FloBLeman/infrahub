@@ -26,7 +26,7 @@ from infrahub.exceptions import BranchNotFoundError, ValidationError
 from infrahub.log import get_log_data, get_logger
 from infrahub.message_bus import Meta, messages
 from infrahub.worker import WORKER_IDENTITY
-from infrahub.workflows.catalogue import BRANCH_MERGE, BRANCH_REBASE
+from infrahub.workflows.catalogue import BRANCH_DELETE, BRANCH_MERGE, BRANCH_REBASE
 
 from ..types import BranchType
 
@@ -137,22 +137,10 @@ class BranchDelete(Mutation):
     async def mutate(cls, root: dict, info: GraphQLResolveInfo, data: BranchNameInput) -> Self:
         context: GraphqlContext = info.context
 
-        async with UserTask.from_graphql_context(title=f"Delete branch: {data['name']}", context=context):
-            obj = await Branch.get_by_name(db=context.db, name=str(data.name))
-            await obj.delete(db=context.db)
-
-            if context.service:
-                log_data = get_log_data()
-                request_id = log_data.get("request_id", "")
-                message = messages.EventBranchDelete(
-                    branch=obj.name,
-                    branch_id=str(obj.id),
-                    sync_with_git=obj.sync_with_git,
-                    meta=Meta(request_id=request_id),
-                )
-                await context.service.send(message=message)
-
-            return cls(ok=True)
+        obj = await Branch.get_by_name(db=context.db, name=str(data.name))
+        assert context.service
+        await context.service.workflow.execute_workflow(workflow=BRANCH_DELETE, parameters={"branch": obj.name})
+        return cls(ok=True)
 
 
 class BranchUpdate(Mutation):

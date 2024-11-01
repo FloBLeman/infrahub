@@ -16,12 +16,13 @@ from infrahub.core.validators.determiner import ConstraintValidatorDeterminer
 from infrahub.core.validators.models.validate_migration import SchemaValidateMigrationData
 from infrahub.core.validators.tasks import schema_validate_migrations
 from infrahub.dependencies.registry import get_component_registry
+from infrahub.events.branch_action import BranchDeleteEvent
 from infrahub.exceptions import ValidationError
 from infrahub.log import get_log_data
 from infrahub.message_bus import Meta, messages
 from infrahub.services import services
 from infrahub.worker import WORKER_IDENTITY
-from infrahub.workflows.catalogue import IPAM_RECONCILIATION
+from infrahub.workflows.catalogue import BRANCH_CANCEL_PROPOSED_CHANGES, IPAM_RECONCILIATION
 from infrahub.workflows.utils import add_branch_tag
 
 
@@ -199,3 +200,18 @@ async def merge_branch(branch: str, conflict_resolution: dict[str, bool] | None 
         meta=Meta(initiator_id=WORKER_IDENTITY, request_id=request_id),
     )
     await service.send(message=message)
+
+
+@flow(name="branch-delete")
+async def delete_branch(branch: str) -> None:
+    service = services.service
+
+    await add_branch_tag(branch_name=branch)
+
+    obj = await Branch.get_by_name(db=service.database, name=str(branch))
+    event = BranchDeleteEvent(branch=branch, branch_id=obj.get_id(), sync_with_git=obj.sync_with_git)
+    await obj.delete(db=service.database)
+
+    await service.workflow.submit_workflow(workflow=BRANCH_CANCEL_PROPOSED_CHANGES, parameters={"branch_name": branch})
+
+    await service.event.send(event=event)

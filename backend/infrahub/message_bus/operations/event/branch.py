@@ -37,20 +37,6 @@ async def create(message: messages.EventBranchCreate, service: InfrahubServices)
         await service.send(message=event)
 
 
-@flow(name="event-branch-delete")
-async def delete(message: messages.EventBranchDelete, service: InfrahubServices) -> None:
-    log.info("Branch was deleted", branch=message.branch)
-
-    events: List[InfrahubMessage] = [
-        messages.RefreshRegistryBranches(),
-        messages.TriggerProposedChangeCancel(branch=message.branch),
-    ]
-
-    for event in events:
-        event.assign_meta(parent=message)
-        await service.send(message=event)
-
-
 @flow(name="branch-event-merge")
 async def merge(message: messages.EventBranchMerge, service: InfrahubServices) -> None:
     log.info("Branch merged", source_branch=message.source_branch, target_branch=message.target_branch)

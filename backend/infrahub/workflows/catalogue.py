@@ -157,6 +157,21 @@ BRANCH_MERGE = WorkflowDefinition(
     tags=[WorkflowTag.DATABASE_CHANGE],
 )
 
+BRANCH_DELETE = WorkflowDefinition(
+    name="branch-delete",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.core.branch.tasks",
+    function="delete_branch",
+    branch_support=BranchSupportType.AWARE,
+)
+
+BRANCH_CANCEL_PROPOSED_CHANGES = WorkflowDefinition(
+    name="proposed-changes-cancel-branch",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.proposed_change.tasks",
+    function="cancel_proposed_changes_branch",
+)
+
 worker_pools = [INFRAHUB_WORKER_POOL]
 
 workflows = [
@@ -173,10 +188,12 @@ workflows = [
     REQUEST_ARTIFACT_GENERATE,
     BRANCH_REBASE,
     BRANCH_MERGE,
+    BRANCH_DELETE,
     REQUEST_ARTIFACT_DEFINITION_GENERATE,
     REQUEST_GENERATOR_RUN,
     REQUEST_DIFF_UPDATE,
     REQUEST_DIFF_REFRESH,
     GIT_REPOSITORIES_PULL_READ_ONLY,
     TRIGGER_GENERATOR_DEFINITION_RUN,
+    BRANCH_CANCEL_PROPOSED_CHANGES,
 ]
