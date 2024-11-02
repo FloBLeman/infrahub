@@ -100,6 +100,7 @@ const sidebars: SidebarsConfig = {
         'topics/ipam',
         'topics/local-demo-environment',
         'topics/generator',
+        'topics/schema',
         'topics/graphql',
         'topics/groups',
         'topics/metadata',
