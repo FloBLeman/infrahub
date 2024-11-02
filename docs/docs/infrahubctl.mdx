@@ -32,9 +32,11 @@ The `infrahubctl` command line utility is installed as a part of the [Infrahub S
 | `INFRAHUB_API_TOKEN`      | `06438eb2-8019-4776-878c-0941b1f1d1ec` |
 | `INFRAHUB_DEFAULT_BRANCH` | main                                   |
 
-> You can also provide the location of a configuration file via the environment variable `INFRAHUBCTL_CONFIG`.
+You can obtain the `INFRAHUB_API_TOKEN` from the web GUI by navigating to 'Account Settings' under your profile and selecting 'Tokens'.
 
 ### `infrahubctl.toml` file
+
+You can also provide the location of a configuration file via the environment variable `INFRAHUBCTL_CONFIG`. Create the `infrahubctl.toml` file and set the `INFRAHUBCTL_CONFIG` environment variable to its location.
 
 ```toml title="infrahubctl.toml"
 server_address="http://localhost:8000"
