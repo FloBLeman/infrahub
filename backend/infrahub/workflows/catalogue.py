@@ -187,6 +187,15 @@ BRANCH_CANCEL_PROPOSED_CHANGES = WorkflowDefinition(
     function="cancel_proposed_changes_branch",
 )
 
+REQUEST_GRAPHQL_QUERY_GROUP_UPDATE = WorkflowDefinition(
+    name="request_graphql_query_group_update",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.graphql.tasks",
+    function="request_graphql_query_group_update",
+    branch_support=BranchSupportType.AWARE,
+    tags=[WorkflowTag.DATABASE_CHANGE],
+)
+
 worker_pools = [INFRAHUB_WORKER_POOL]
 
 workflows = [
@@ -213,4 +222,5 @@ workflows = [
     TRIGGER_GENERATOR_DEFINITION_RUN,
     BRANCH_CANCEL_PROPOSED_CHANGES,
     REQUEST_GENERATOR_DEFINITION_RUN,
+    REQUEST_GRAPHQL_QUERY_GROUP_UPDATE,
 ]

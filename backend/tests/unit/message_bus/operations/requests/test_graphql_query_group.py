@@ -8,8 +8,8 @@ from infrahub_sdk import Config, InfrahubClient
 from pytest_httpx import HTTPXMock
 
 from infrahub.database import InfrahubDatabase
-from infrahub.message_bus import messages
-from infrahub.message_bus.operations.requests.graphql_query_group import update
+from infrahub.graphql.models import RequestGraphQLQueryGroupUpdate
+from infrahub.graphql.tasks import request_graphql_query_group_update
 from infrahub.services import InfrahubServices
 
 
@@ -32,7 +32,7 @@ async def test_graphql_group_update(db: InfrahubDatabase, httpx_mock: HTTPXMock,
     c3 = str(uuid.uuid4())
     r1 = str(uuid.uuid4())
 
-    message = messages.RequestGraphQLQueryGroupUpdate(
+    model = RequestGraphQLQueryGroupUpdate(
         query_id=q1,
         query_name="query01",
         branch="main",
@@ -63,4 +63,4 @@ async def test_graphql_group_update(db: InfrahubDatabase, httpx_mock: HTTPXMock,
         match_headers={"X-Infrahub-Tracker": "mutation-relationshipadd"},
     )
 
-    await update.fn(message=message, service=service)
+    await request_graphql_query_group_update.fn(message=model, service=service)
