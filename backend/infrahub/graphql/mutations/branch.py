@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 import pydantic
-from graphene import Boolean, Field, InputField, InputObjectType, List, Mutation, String
+from graphene import Boolean, Field, InputField, InputObjectType, List, Mutation, ObjectType, String
 from infrahub_sdk.utils import extract_fields, extract_fields_first_node
 from opentelemetry import trace
 from typing_extensions import Self
@@ -39,6 +39,10 @@ if TYPE_CHECKING:
 # pylint: disable=unused-argument
 
 log = get_logger()
+
+
+class TaskInfo(ObjectType):
+    id = Field(String)
 
 
 class BranchCreateInput(InputObjectType):
@@ -129,18 +133,29 @@ class BranchUpdateInput(InputObjectType):
 class BranchDelete(Mutation):
     class Arguments:
         data = BranchNameInput(required=True)
+        wait_until_completion = Boolean(required=False)
 
     ok = Boolean()
+    task = Field(TaskInfo, required=False)
 
     @classmethod
     @retry_db_transaction(name="branch_delete")
-    async def mutate(cls, root: dict, info: GraphQLResolveInfo, data: BranchNameInput) -> Self:
+    async def mutate(
+        cls, root: dict, info: GraphQLResolveInfo, data: BranchNameInput, wait_until_completion: bool = True
+    ) -> Self:
         context: GraphqlContext = info.context
-
         obj = await Branch.get_by_name(db=context.db, name=str(data.name))
-        assert context.service
-        await context.service.workflow.execute_workflow(workflow=BRANCH_DELETE, parameters={"branch": obj.name})
-        return cls(ok=True)
+
+        if wait_until_completion:
+            await context.active_service.workflow.execute_workflow(
+                workflow=BRANCH_DELETE, parameters={"branch": obj.name}
+            )
+            return cls(ok=True)
+
+        workflow = await context.active_service.workflow.submit_workflow(
+            workflow=BRANCH_DELETE, parameters={"branch": obj.name}
+        )
+        return cls(ok=True, task={"id": str(workflow.id)})
 
 
 class BranchUpdate(Mutation):
@@ -170,27 +185,38 @@ class BranchUpdate(Mutation):
 class BranchRebase(Mutation):
     class Arguments:
         data = BranchNameInput(required=True)
+        wait_until_completion = Boolean(required=False)
 
     ok = Boolean()
     object = Field(BranchType)
+    task = Field(TaskInfo, required=False)
 
     @classmethod
-    async def mutate(cls, root: dict, info: GraphQLResolveInfo, data: BranchNameInput) -> Self:
+    async def mutate(
+        cls, root: dict, info: GraphQLResolveInfo, data: BranchNameInput, wait_until_completion: bool = True
+    ) -> Self:
         context: GraphqlContext = info.context
 
-        if not context.service:
-            raise ValueError("Service must be provided to rebase a branch.")
-
         obj = await Branch.get_by_name(db=context.db, name=str(data.name))
+        task: dict | None = None
 
-        await context.service.workflow.execute_workflow(workflow=BRANCH_REBASE, parameters={"branch": obj.name})
+        if wait_until_completion:
+            await context.active_service.workflow.execute_workflow(
+                workflow=BRANCH_REBASE, parameters={"branch": obj.name}
+            )
 
-        # Pull the latest information about the branch from the database directly
-        obj = await Branch.get_by_name(db=context.db, name=str(data.name))
+            # Pull the latest information about the branch from the database directly
+            obj = await Branch.get_by_name(db=context.db, name=str(data.name))
+        else:
+            workflow = await context.active_service.workflow.submit_workflow(
+                workflow=BRANCH_REBASE, parameters={"branch": obj.name}
+            )
+            task = {"id": workflow.id}
+
         fields = await extract_fields_first_node(info=info)
         ok = True
 
-        return cls(object=await obj.to_graphql(fields=fields.get("object", {})), ok=ok)
+        return cls(object=await obj.to_graphql(fields=fields.get("object", {})), ok=ok, task=task)
 
 
 class BranchValidate(Mutation):
