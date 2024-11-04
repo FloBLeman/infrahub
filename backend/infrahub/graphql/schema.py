@@ -52,7 +52,7 @@ from .queries import (
     Relationship,
 )
 from .queries.diff.tree import DiffTreeQuery, DiffTreeSummaryQuery
-from .queries.task import Task
+from .queries.task import Task, TaskBranchStatus
 
 
 class InfrahubBaseQuery(ObjectType):
@@ -72,6 +72,7 @@ class InfrahubBaseQuery(ObjectType):
     InfrahubSearchAnywhere = InfrahubSearchAnywhere
 
     InfrahubTask = Task
+    InfrahubTaskBranchStatus = TaskBranchStatus
 
     IPAddressGetNextAvailable = InfrahubIPAddressGetNextAvailable
     IPPrefixGetNextAvailable = InfrahubIPPrefixGetNextAvailable
