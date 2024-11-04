@@ -1,5 +1,6 @@
-from infrahub.core.constants import AttributeAssignmentType, RelationshipCardinality, RelationshipKind
+from infrahub.core.constants import ComputedAttributeKind, RelationshipCardinality, RelationshipKind
 from infrahub.core.schema import AttributeSchema, NodeSchema, RelationshipSchema
+from infrahub.core.schema.computed_attribute import ComputedAttribute
 from tests.constants import TestKind
 
 THING = NodeSchema(
@@ -15,8 +16,10 @@ THING = NodeSchema(
             name="description",
             kind="Text",
             read_only=True,
-            assignment_type=AttributeAssignmentType.MACRO,
-            computation_logic="{{ owner__name__value }}'s {{ color__value }} {{ name__value }}",
+            computed_attribute=ComputedAttribute(
+                kind=ComputedAttributeKind.JINJA2,
+                jinja2_template="{{ owner__name__value }}'s {{ color__value }} {{ name__value }}",
+            ),
         ),
     ],
     relationships=[

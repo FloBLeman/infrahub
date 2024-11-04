@@ -107,10 +107,10 @@ class BranchSupportType(InfrahubStringEnum):
     LOCAL = "local"
 
 
-class AttributeAssignmentType(InfrahubStringEnum):
-    USER = "user"
-    MACRO = "macro"
-    TRANSFORM = "transform"
+class ComputedAttributeKind(InfrahubStringEnum):
+    USER = "User"
+    JINJA2 = "Jinja2"
+    TRANSFORM_PYTHON = "TransformPython"
 
 
 class BranchConflictKeep(InfrahubStringEnum):

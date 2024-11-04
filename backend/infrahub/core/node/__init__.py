@@ -7,7 +7,7 @@ from infrahub_sdk.utils import is_valid_uuid
 from infrahub_sdk.uuidt import UUIDT
 
 from infrahub.core import registry
-from infrahub.core.constants import AttributeAssignmentType, BranchSupportType, InfrahubKind, RelationshipCardinality
+from infrahub.core.constants import BranchSupportType, ComputedAttributeKind, InfrahubKind, RelationshipCardinality
 from infrahub.core.constants.schema import SchemaElementPathType
 from infrahub.core.protocols import CoreNumberPool
 from infrahub.core.query.node import NodeCheckIDQuery, NodeCreateAllQuery, NodeDeleteQuery, NodeGetListQuery
@@ -164,7 +164,7 @@ class Node(BaseNode, metaclass=BaseNodeMeta):
         self._source: Optional[Node] = None
         self._owner: Optional[Node] = None
         self._is_protected: bool = None
-        self._computed_macros: list[str] = []
+        self._computed_jinja2_attributes: list[str] = []
 
         # Lists of attributes and relationships names
         self._attributes: list[str] = []
@@ -283,8 +283,11 @@ class Node(BaseNode, metaclass=BaseNodeMeta):
                 if mandatory_attr not in fields.keys():
                     if self._schema.is_node_schema:
                         mandatory_attribute = self._schema.get_attribute(name=mandatory_attr)
-                        if mandatory_attribute.assignment_type == AttributeAssignmentType.MACRO:
-                            self._computed_macros.append(mandatory_attr)
+                        if (
+                            mandatory_attribute.computed_attribute
+                            and mandatory_attribute.computed_attribute.kind == ComputedAttributeKind.JINJA2
+                        ):
+                            self._computed_jinja2_attributes.append(mandatory_attr)
                             continue
 
                     errors.append(
@@ -326,7 +329,7 @@ class Node(BaseNode, metaclass=BaseNodeMeta):
 
         for attr_schema in self._schema.attributes:
             self._attributes.append(attr_schema.name)
-            if not self._existing and attr_schema.name in self._computed_macros:
+            if not self._existing and attr_schema.name in self._computed_jinja2_attributes:
                 continue
 
             # Check if there is a more specific generator present
@@ -367,15 +370,20 @@ class Node(BaseNode, metaclass=BaseNodeMeta):
             SchemaElementPathType.ATTR_WITH_PROP | SchemaElementPathType.REL_ONE_MANDATORY_ATTR_WITH_PROP
         )
         errors = []
-        for macro in self._computed_macros:
+        for macro in self._computed_jinja2_attributes:
             variables = {}
             attr_schema = self._schema.get_attribute(name=macro)
-            if not attr_schema.computation_logic:
+            if not attr_schema.computed_attribute:
                 errors.append(
                     ValidationError({macro: f"{macro} is missing computational_logic for macro ({attr_schema.kind})"})
                 )
                 continue
-            macro_definition = MacroDefinition(macro=attr_schema.computation_logic)
+            if not attr_schema.computed_attribute.jinja2_template:
+                errors.append(
+                    ValidationError({macro: f"{macro} is missing computational_logic for macro ({attr_schema.kind})"})
+                )
+                continue
+            macro_definition = MacroDefinition(macro=attr_schema.computed_attribute.jinja2_template)
 
             for variable in macro_definition.variables:
                 attribute_path = schema_branch.validate_schema_path(

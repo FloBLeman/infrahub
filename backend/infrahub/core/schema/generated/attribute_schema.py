@@ -6,8 +6,9 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from pydantic import Field
 
-from infrahub.core.constants import AllowOverrideType, AttributeAssignmentType, HashableModelState
+from infrahub.core.constants import AllowOverrideType, HashableModelState
 from infrahub.core.models import HashableModel
+from infrahub.core.schema.computed_attribute import ComputedAttribute  # noqa: TCH001
 from infrahub.core.schema.dropdown import DropdownChoice  # noqa: TCH001
 
 if TYPE_CHECKING:
@@ -33,6 +34,11 @@ class GeneratedAttributeSchema(HashableModel):
         default=None,
         description="Define a list of valid values for the attribute.",
         json_schema_extra={"update": "validate_constraint"},
+    )
+    computed_attribute: Optional[ComputedAttribute] = Field(
+        default=None,
+        description="Defines how the value of this attribute will be populated.",
+        json_schema_extra={"update": "allowed"},
     )
     choices: Optional[list[DropdownChoice]] = Field(
         default=None,
@@ -64,16 +70,6 @@ class GeneratedAttributeSchema(HashableModel):
         default=None,
         description="Short description of the attribute.",
         max_length=128,
-        json_schema_extra={"update": "allowed"},
-    )
-    assignment_type: AttributeAssignmentType = Field(
-        default=AttributeAssignmentType.USER,
-        description="Reflects how the value is assigned if it comes directly from an end user, a macro or a transform",
-        json_schema_extra={"update": "not_supported"},
-    )
-    computation_logic: Optional[str] = Field(
-        default=None,
-        description="Specifies a macro that will be used when assignment_type=MACRO or transform when assignment_type=TRANSFORM",
         json_schema_extra={"update": "allowed"},
     )
     read_only: bool = Field(

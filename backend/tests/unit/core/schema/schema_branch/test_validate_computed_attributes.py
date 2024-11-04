@@ -1,7 +1,8 @@
 import pytest
 
-from infrahub.core.constants import AttributeAssignmentType, RelationshipCardinality
+from infrahub.core.constants import ComputedAttributeKind, RelationshipCardinality
 from infrahub.core.schema import AttributeSchema, GenericSchema, NodeSchema, RelationshipSchema, SchemaRoot
+from infrahub.core.schema.computed_attribute import ComputedAttribute
 from infrahub.core.schema.schema_branch import SchemaBranch
 
 
@@ -20,14 +21,18 @@ from infrahub.core.schema.schema_branch import SchemaBranch
                                 kind="Text",
                             ),
                             AttributeSchema(
-                                name="computed", kind="Text", assignment_type=AttributeAssignmentType.MACRO
+                                name="computed",
+                                kind="Text",
+                                computed_attribute=ComputedAttribute(
+                                    kind=ComputedAttributeKind.JINJA2, jinja2_template="n/a"
+                                ),
                             ),
                         ],
                     ),
                 ],
             ),
-            "TestingPerson: Attribute 'computed' assignment_type=macro is only allowed on nodes not generics",
-            id="macro_on_generic",
+            "TestingPerson: Attribute 'computed' computed attributes are only allowed on nodes not generics",
+            id="jinja2_on_generic",
         ),
         pytest.param(
             SchemaRoot(
@@ -41,13 +46,15 @@ from infrahub.core.schema.schema_branch import SchemaBranch
                                 kind="Text",
                             ),
                             AttributeSchema(
-                                name="computed", kind="Text", assignment_type=AttributeAssignmentType.MACRO
+                                name="computed",
+                                kind="Text",
+                                computed_attribute=ComputedAttribute(kind=ComputedAttributeKind.JINJA2),
                             ),
                         ],
                     ),
                 ],
             ),
-            "TestingPerson: Attribute 'computed' is a computed macro but not marked as read_only",
+            "TestingPerson: Attribute 'computed' is a computed jinja2 attribute but not marked as read_only",
             id="missing_read_only",
         ),
         pytest.param(
@@ -65,14 +72,14 @@ from infrahub.core.schema.schema_branch import SchemaBranch
                                 name="computed",
                                 kind="Text",
                                 read_only=True,
-                                assignment_type=AttributeAssignmentType.MACRO,
+                                computed_attribute=ComputedAttribute(kind=ComputedAttributeKind.JINJA2),
                             ),
                         ],
                     ),
                 ],
             ),
-            "TestingPerson: Attribute 'computed' is a computed macro but no macro is defined",
-            id="macro_missing",
+            "TestingPerson: Attribute 'computed' is a computed jinja2 attribute but no logic is defined",
+            id="logic_missing",
         ),
         pytest.param(
             SchemaRoot(
@@ -89,15 +96,17 @@ from infrahub.core.schema.schema_branch import SchemaBranch
                                 name="computed",
                                 kind="Text",
                                 read_only=True,
-                                assignment_type=AttributeAssignmentType.MACRO,
-                                computation_logic="{{ name__value }} {% include 'index.html' %}",
+                                computed_attribute=ComputedAttribute(
+                                    kind=ComputedAttributeKind.JINJA2,
+                                    jinja2_template="{{ name__value }} {% include 'index.html' %}",
+                                ),
                             ),
                         ],
                     ),
                 ],
             ),
-            "TestingPerson: Attribute 'computed' is assigned by a macro, but has an invalid macro",
-            id="macro_invalid_format",
+            "TestingPerson: Attribute 'computed' is assigned by a jinja2 template, but has an invalid template",
+            id="template_invalid_format",
         ),
         pytest.param(
             SchemaRoot(
@@ -114,8 +123,10 @@ from infrahub.core.schema.schema_branch import SchemaBranch
                                 name="computed",
                                 kind="Text",
                                 read_only=True,
-                                assignment_type=AttributeAssignmentType.MACRO,
-                                computation_logic="{{ name__value }}-{{ fullname__value }}",
+                                computed_attribute=ComputedAttribute(
+                                    kind=ComputedAttributeKind.JINJA2,
+                                    jinja2_template="{{ name__value }}-{{ fullname__value }}",
+                                ),
                             ),
                         ],
                     ),
@@ -149,8 +160,10 @@ from infrahub.core.schema.schema_branch import SchemaBranch
                                 name="computed",
                                 kind="Text",
                                 read_only=True,
-                                assignment_type=AttributeAssignmentType.MACRO,
-                                computation_logic="{{ owner__fullname__value }}'s {{ name__value }}",
+                                computed_attribute=ComputedAttribute(
+                                    kind=ComputedAttributeKind.JINJA2,
+                                    jinja2_template="{{ owner__fullname__value }}'s {{ name__value }}",
+                                ),
                             ),
                         ],
                         relationships=[
@@ -179,8 +192,10 @@ from infrahub.core.schema.schema_branch import SchemaBranch
                                 name="computed",
                                 kind="Text",
                                 read_only=True,
-                                assignment_type=AttributeAssignmentType.MACRO,
-                                computation_logic="{{ name__value }}-{{ computed__value }}",
+                                computed_attribute=ComputedAttribute(
+                                    kind=ComputedAttributeKind.JINJA2,
+                                    jinja2_template="{{ name__value }}-{{ computed__value }}",
+                                ),
                             ),
                         ],
                     ),
@@ -204,14 +219,15 @@ from infrahub.core.schema.schema_branch import SchemaBranch
                                 name="computed",
                                 kind="Number",
                                 read_only=True,
-                                assignment_type=AttributeAssignmentType.MACRO,
-                                computation_logic="{{ name__value }}",
+                                computed_attribute=ComputedAttribute(
+                                    kind=ComputedAttributeKind.JINJA2, jinja2_template="{{ name__value }}"
+                                ),
                             ),
                         ],
                     ),
                 ],
             ),
-            "TestingPerson: Attribute 'computed' is a computed macro currently only 'Text' kinds are supported.",
+            "TestingPerson: Attribute 'computed' is a computed jinja2 attribute currently only 'Text' kinds are supported.",
             id="wrong_kind",
         ),
         pytest.param(
@@ -229,8 +245,9 @@ from infrahub.core.schema.schema_branch import SchemaBranch
                                 name="computed",
                                 kind="Text",
                                 read_only=True,
-                                assignment_type=AttributeAssignmentType.TRANSFORM,
-                                computation_logic="my_transform",
+                                computed_attribute=ComputedAttribute(
+                                    kind=ComputedAttributeKind.TRANSFORM_PYTHON, transform="my_transform"
+                                ),
                             ),
                         ],
                     ),

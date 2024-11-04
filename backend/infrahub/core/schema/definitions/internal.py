@@ -22,7 +22,6 @@ from infrahub.core.constants import (
     NODE_KIND_REGEX,
     NODE_NAME_REGEX,
     AllowOverrideType,
-    AttributeAssignmentType,
     BranchSupportType,
     HashableModelState,
     RelationshipCardinality,
@@ -32,6 +31,7 @@ from infrahub.core.constants import (
     UpdateSupport,
 )
 from infrahub.core.schema.attribute_schema import AttributeSchema
+from infrahub.core.schema.computed_attribute import ComputedAttribute
 from infrahub.core.schema.dropdown import DropdownChoice
 from infrahub.core.schema.relationship_schema import RelationshipSchema
 from infrahub.types import ATTRIBUTE_KIND_LABELS
@@ -479,6 +479,14 @@ attribute_schema = SchemaNode(
             extra={"update": UpdateSupport.VALIDATE_CONSTRAINT},
         ),
         SchemaAttribute(
+            name="computed_attribute",
+            kind="JSON",
+            internal_kind=ComputedAttribute,
+            description="Defines how the value of this attribute will be populated.",
+            optional=True,
+            extra={"update": UpdateSupport.ALLOWED},
+        ),
+        SchemaAttribute(
             name="choices",
             kind="List",
             internal_kind=DropdownChoice,
@@ -521,23 +529,6 @@ attribute_schema = SchemaNode(
             optional=True,
             description="Short description of the attribute.",
             max_length=DEFAULT_DESCRIPTION_LENGTH,
-            extra={"update": UpdateSupport.ALLOWED},
-        ),
-        SchemaAttribute(
-            name="assignment_type",
-            kind="Text",
-            description="Reflects how the value is assigned if it comes directly from an end user, a macro or a transform",
-            internal_kind=AttributeAssignmentType,
-            enum=AttributeAssignmentType.available_types(),
-            default_value=AttributeAssignmentType.USER,
-            optional=False,
-            extra={"update": UpdateSupport.NOT_SUPPORTED},
-        ),
-        SchemaAttribute(
-            name="computation_logic",
-            kind="Text",
-            description="Specifies a macro that will be used when assignment_type=MACRO or transform when assignment_type=TRANSFORM",
-            optional=True,
             extra={"update": UpdateSupport.ALLOWED},
         ),
         SchemaAttribute(

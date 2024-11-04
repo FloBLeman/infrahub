@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any
 
 from graphene import Boolean, InputObjectType, Mutation, String
 
-from infrahub.core.constants import AttributeAssignmentType
+from infrahub.core.constants import ComputedAttributeKind
 from infrahub.core.manager import NodeManager
 from infrahub.core.registry import registry
 from infrahub.database import retry_db_transaction
@@ -40,7 +40,10 @@ class UpdateComputedAttribute(Mutation):
         context: GraphqlContext = info.context
         node_schema = registry.schema.get_node_schema(name=str(data.kind), branch=context.branch.name, duplicate=False)
         target_attribute = node_schema.get_attribute(name=str(data.attribute))
-        if target_attribute.assignment_type == AttributeAssignmentType.USER:
+        if (
+            not target_attribute.computed_attribute
+            or target_attribute.computed_attribute.kind == ComputedAttributeKind.USER
+        ):
             raise ValidationError(input_value=f"{node_schema.kind}.{target_attribute.name} is not a computed attribute")
 
         if not (

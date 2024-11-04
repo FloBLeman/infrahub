@@ -15,8 +15,8 @@ from infrahub.core.constants import (
     RESERVED_ATTR_GEN_NAMES,
     RESERVED_ATTR_REL_NAMES,
     RESTRICTED_NAMESPACES,
-    AttributeAssignmentType,
     BranchSupportType,
+    ComputedAttributeKind,
     HashableModelState,
     InfrahubKind,
     RelationshipCardinality,
@@ -114,7 +114,7 @@ class SchemaBranch:
         self.nodes: dict[str, str] = {}
         self.generics: dict[str, str] = {}
         self.profiles: dict[str, str] = {}
-        self._computed_macro_map: dict[str, RegisteredNodeComputedAttribute] = {}
+        self._computed_jinja2_attribute_map: dict[str, RegisteredNodeComputedAttribute] = {}
 
         if data:
             self.nodes = data.get("nodes", {})
@@ -949,7 +949,7 @@ class SchemaBranch:
                     ) from None
 
     def validate_computed_attributes(self) -> None:
-        self._computed_macro_map = {}
+        self._computed_jinja2_attribute_map = {}
         for name in self.nodes.keys():
             node_schema = self.get_node(name=name, duplicate=False)
             for attribute in node_schema.attributes:
@@ -958,35 +958,45 @@ class SchemaBranch:
         for name in self.generics.keys():
             generic_schema = self.get_generic(name=name, duplicate=False)
             for attribute in generic_schema.attributes:
-                if attribute.assignment_type != AttributeAssignmentType.USER:
+                if attribute.computed_attribute and attribute.computed_attribute.kind != ComputedAttributeKind.USER:
                     raise ValueError(
-                        f"{generic_schema.kind}: Attribute {attribute.name!r} assignment_type=macro is only allowed on nodes not generics"
+                        f"{generic_schema.kind}: Attribute {attribute.name!r} computed attributes are only allowed on nodes not generics"
                     )
 
     def _validate_computed_attribute(self, node: NodeSchema, attribute: AttributeSchema) -> None:
-        if attribute.assignment_type == AttributeAssignmentType.USER:
+        if not attribute.computed_attribute or attribute.computed_attribute.kind == ComputedAttributeKind.USER:
             return
+
         if not attribute.read_only:
             raise ValueError(
-                f"{node.kind}: Attribute {attribute.name!r} is a computed macro but not marked as read_only"
+                f"{node.kind}: Attribute {attribute.name!r} is a computed jinja2 attribute but not marked as read_only"
             )
         if not attribute.kind == "Text":
             raise ValueError(
-                f"{node.kind}: Attribute {attribute.name!r} is a computed macro currently only 'Text' kinds are supported."
+                f"{node.kind}: Attribute {attribute.name!r} is a computed jinja2 attribute currently only 'Text' kinds are supported."
             )
-        if attribute.assignment_type == AttributeAssignmentType.MACRO and not attribute.computation_logic:
-            raise ValueError(f"{node.kind}: Attribute {attribute.name!r} is a computed macro but no macro is defined")
-        if attribute.assignment_type == AttributeAssignmentType.MACRO and attribute.computation_logic:
+
+        if (
+            attribute.computed_attribute.kind == ComputedAttributeKind.JINJA2
+            and not attribute.computed_attribute.jinja2_template
+        ):
+            raise ValueError(
+                f"{node.kind}: Attribute {attribute.name!r} is a computed jinja2 attribute but no logic is defined"
+            )
+        if (
+            attribute.computed_attribute.kind == ComputedAttributeKind.JINJA2
+            and attribute.computed_attribute.jinja2_template
+        ):
             allowed_path_types = (
                 SchemaElementPathType.ATTR_WITH_PROP
                 | SchemaElementPathType.REL_ONE_MANDATORY_ATTR_WITH_PROP
                 | SchemaElementPathType.REL_ONE_ATTR_WITH_PROP
             )
             try:
-                macro = MacroDefinition(macro=attribute.computation_logic)
+                macro = MacroDefinition(macro=attribute.computed_attribute.jinja2_template)
             except ValueError as exc:
                 raise ValueError(
-                    f"{node.kind}: Attribute {attribute.name!r} is assigned by a macro, but has an invalid macro"
+                    f"{node.kind}: Attribute {attribute.name!r} is assigned by a jinja2 template, but has an invalid template"
                 ) from exc
 
             for variable in macro.variables:
@@ -1006,13 +1016,13 @@ class SchemaBranch:
 
                 self._register_computed_attribute_target(node=node, attribute=attribute, schema_path=schema_path)
 
-        if attribute.assignment_type == AttributeAssignmentType.TRANSFORM and not attribute.optional:
+        if attribute.computed_attribute.kind == ComputedAttributeKind.TRANSFORM_PYTHON and not attribute.optional:
             raise ValueError(
                 f"{node.kind}: Attribute {attribute.name!r} is a computed transform, it can't be mandatory"
             )
 
     def get_impacted_macros(self, kind: str, updates: list[str] | None = None) -> list[ComputedAttributeTarget]:
-        if mapping := self._computed_macro_map.get(kind):
+        if mapping := self._computed_jinja2_attribute_map.get(kind):
             return mapping.get_targets(updates=updates)
 
         return []
@@ -1024,11 +1034,11 @@ class SchemaBranch:
         if schema_path.is_type_relationship:
             key = schema_path.active_relationship_schema.peer
 
-        if key not in self._computed_macro_map:
-            self._computed_macro_map[key] = RegisteredNodeComputedAttribute()
+        if key not in self._computed_jinja2_attribute_map:
+            self._computed_jinja2_attribute_map[key] = RegisteredNodeComputedAttribute()
 
         source_attribute = ComputedAttributeTarget(kind=node.kind, attribute=attribute)
-        trigger_node = self._computed_macro_map[key]
+        trigger_node = self._computed_jinja2_attribute_map[key]
         if schema_path.is_type_attribute:
             if schema_path.active_attribute_schema.name not in trigger_node.local_fields:
                 trigger_node.local_fields[schema_path.active_attribute_schema.name] = []
@@ -1045,17 +1055,17 @@ class SchemaBranch:
 
             trigger_node.relationships[schema_path.active_relationship_schema.name].append(source_attribute)
 
-            if source_attribute.kind not in self._computed_macro_map:
-                self._computed_macro_map[source_attribute.kind] = RegisteredNodeComputedAttribute()
+            if source_attribute.kind not in self._computed_jinja2_attribute_map:
+                self._computed_jinja2_attribute_map[source_attribute.kind] = RegisteredNodeComputedAttribute()
 
             if (
                 schema_path.active_relationship_schema.name
-                not in self._computed_macro_map[source_attribute.kind].local_fields
+                not in self._computed_jinja2_attribute_map[source_attribute.kind].local_fields
             ):
-                self._computed_macro_map[source_attribute.kind].local_fields[
+                self._computed_jinja2_attribute_map[source_attribute.kind].local_fields[
                     schema_path.active_relationship_schema.name
                 ] = []
-            self._computed_macro_map[source_attribute.kind].local_fields[
+            self._computed_jinja2_attribute_map[source_attribute.kind].local_fields[
                 schema_path.active_relationship_schema.name
             ].append(source_attribute)
 

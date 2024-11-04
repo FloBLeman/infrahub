@@ -205,18 +205,26 @@ UPDATE_GRAPHQL_QUERY_GROUP = WorkflowDefinition(
 )
 
 PROCESS_COMPUTED_MACRO = WorkflowDefinition(
-    name="process_computed_macro",
+    name="process_computed_attribute_jinja2",
     type=WorkflowType.INTERNAL,
-    module="infrahub.process.computed_attribute.tasks",
-    function="process_macro",
+    module="infrahub.computed_attribute.tasks",
+    function="process_jinja2",
 )
 
 COMPUTED_ATTRIBUTE_SETUP = WorkflowDefinition(
     name="computed-attribute-setup",
     type=WorkflowType.INTERNAL,
-    module="infrahub.process.computed_attribute.tasks",
+    module="infrahub.computed_attribute.tasks",
     function="computed_attribute_setup",
 )
+
+UPDATE_COMPUTED_ATTRIBUTE_TRANSFORM = WorkflowDefinition(
+    name="process_computed_attribute_transform",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.computed_attribute.tasks",
+    function="process_transform",
+)
+
 
 worker_pools = [INFRAHUB_WORKER_POOL]
 
@@ -248,4 +256,5 @@ workflows = [
     GIT_REPOSITORY_ADD,
     PROCESS_COMPUTED_MACRO,
     COMPUTED_ATTRIBUTE_SETUP,
+    UPDATE_COMPUTED_ATTRIBUTE_TRANSFORM,
 ]

@@ -12,13 +12,18 @@ from prefect.events.schemas.automations import EventTrigger, Posture
 from prefect.events.schemas.events import ResourceSpecification
 from prefect.logging import get_run_logger
 
+from infrahub.core.constants import ComputedAttributeKind
 from infrahub.core.registry import registry
+from infrahub.git.repository import get_initialized_repo
 from infrahub.services import services
 from infrahub.support.macro import MacroDefinition
 from infrahub.workflows.catalogue import PROCESS_COMPUTED_MACRO
+from infrahub.workflows.utils import add_branch_tag
 
 if TYPE_CHECKING:
+    from infrahub.core.schema.computed_attribute import ComputedAttribute
     from infrahub.core.schema.schema_branch import ComputedAttributeTarget
+
 UPDATE_ATTRIBUTE = """
 mutation UpdateAttribute(
     $id: String!,
@@ -35,8 +40,81 @@ mutation UpdateAttribute(
 """
 
 
-@flow(name="process-computed-macro", log_prints=True)
-async def process_macro(
+@flow(name="process_computed_attribute_transform", flow_run_name="Process computed attribute on branch {branch_name}")
+async def process_transform(
+    branch_name: str,
+    node_kind: str,
+    object_id: str,
+    updated_fields: list[str] | None = None,  # pylint: disable=unused-argument
+) -> None:
+    """Request to the creation of git branches in available repositories."""
+    await add_branch_tag(branch_name=branch_name)
+
+    service = services.service
+    schema_branch = registry.schema.get_schema_branch(name=branch_name)
+    node_schema = schema_branch.get_node(name=node_kind, duplicate=False)
+    transform_attributes: dict[str, ComputedAttribute] = {}
+    for attribute in node_schema.attributes:
+        if attribute.computed_attribute and attribute.computed_attribute.kind == ComputedAttributeKind.TRANSFORM_PYTHON:
+            transform_attributes[attribute.name] = attribute.computed_attribute
+
+    if not transform_attributes:
+        return
+
+    for attribute_name, transform_attribute in transform_attributes.items():
+        transform = await service.client.get(
+            kind="CoreTransformPython",
+            branch=branch_name,
+            id=transform_attribute.transform,
+            prefetch_relationships=True,
+            populate_store=True,
+        )
+        if not transform:
+            continue
+
+        repo_node = await service.client.get(
+            kind=transform.repository.peer.typename,
+            branch=branch_name,
+            id=transform.repository.peer.id,
+            raise_when_missing=True,
+        )
+
+        repo = await get_initialized_repo(
+            repository_id=transform.repository.peer.id,
+            name=transform.repository.peer.name.value,
+            service=service,
+            repository_kind=transform.repository.peer.typename,
+        )
+
+        data = await service.client.query_gql_query(
+            name=transform.query.peer.name.value,
+            variables={"id": object_id},
+            update_group=True,
+            subscribers=[object_id],
+        )
+
+        transformed_data = await repo.execute_python_transform(
+            branch_name=branch_name,
+            commit=repo_node.commit.value,
+            location=f"{transform.file_path.value}::{transform.class_name.value}",
+            data=data,
+            client=service.client,
+        )
+
+        await service.client.execute_graphql(
+            query=UPDATE_ATTRIBUTE,
+            variables={
+                "id": object_id,
+                "kind": node_kind,
+                "attribute": attribute_name,
+                "value": transformed_data,
+            },
+            branch_name=branch_name,
+        )
+
+
+@flow(name="process_computed_attribute_jinja2", log_prints=True)
+async def process_jinja2(
     branch_name: str, node_kind: str, object_id: str, updated_fields: list[str] | None = None
 ) -> None:
     """Request to the creation of git branches in available repositories."""
@@ -48,15 +126,18 @@ async def process_macro(
         found = []
         for id_filter in computed_macro.node_filters:
             filters = {id_filter: object_id}
-            characters = await service.client.filters(
+            nodes = await service.client.filters(
                 kind=computed_macro.kind, prefetch_relationships=True, populate_store=True, **filters
             )
-            found.extend(characters)
+            found.extend(nodes)
 
         if not found:
             print("No nodes found to apply Macro to")
 
-        macro_definition = MacroDefinition(macro=computed_macro.attribute.computation_logic or "n/a")
+        template_string = "n/a"
+        if computed_macro.attribute.computed_attribute and computed_macro.attribute.computed_attribute.jinja2_template:
+            template_string = computed_macro.attribute.computed_attribute.jinja2_template
+        macro_definition = MacroDefinition(macro=template_string)
         for node in found:
             my_filter = {}
             for variable in macro_definition.variables:
@@ -75,7 +156,7 @@ async def process_macro(
                         attribute_property = getattr(relationship.peer, property_name)
                         my_filter[variable] = getattr(attribute_property, property_value)
                     except ValueError:
-                        my_filter[variable] = "MISSING"
+                        my_filter[variable] = ""
 
             await service.client.execute_graphql(
                 query=UPDATE_ATTRIBUTE,
@@ -114,7 +195,7 @@ async def computed_attribute_setup() -> None:
         # automations = await client.read_automations()
 
         computed_attributes: dict[str, ComputedAttributeTarget] = {}
-        for item in schema_branch._computed_macro_map.values():
+        for item in schema_branch._computed_jinja2_attribute_map.values():
             for attrs in list(item.local_fields.values()) + list(item.relationships.values()):
                 for attr in attrs:
                     if attr.key_name in computed_attributes:
