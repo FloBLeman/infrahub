@@ -8,12 +8,12 @@ from prefect import flow, task
 
 from infrahub import lock
 from infrahub.core.constants import GeneratorInstanceStatus, InfrahubKind
-from infrahub.generators.models import RequestGeneratorRun
+from infrahub.generators.models import RequestGeneratorDefinitionRun, RequestGeneratorRun
 from infrahub.git.base import extract_repo_file_information
 from infrahub.git.repository import get_initialized_repo
-from infrahub.message_bus import messages
 from infrahub.message_bus.types import ProposedChangeGeneratorDefinition
 from infrahub.services import InfrahubServices, services
+from infrahub.workflows.catalogue import REQUEST_GENERATOR_DEFINITION_RUN, REQUEST_GENERATOR_RUN
 
 
 @flow(name="generator-run")
@@ -130,9 +130,66 @@ async def run_generator_definition(branch: str) -> None:
         for generator in generators
     ]
 
-    events = [
-        messages.RequestGeneratorDefinitionRun(branch=branch, generator_definition=generator_definition)
-        for generator_definition in generator_definitions
-    ]
-    for event in events:
-        await service.send(message=event)
+    for generator_definition in generator_definitions:
+        model = RequestGeneratorDefinitionRun(branch=branch, generator_definition=generator_definition)
+        await service.workflow.submit_workflow(workflow=REQUEST_GENERATOR_DEFINITION_RUN, parameters={"model": model})
+
+
+@flow(name="request_generator_definition_run")
+async def request_generator_definition_run(model: RequestGeneratorDefinitionRun, service: InfrahubServices) -> None:
+    async with service.task_report(
+        title="Executing Generator",
+        related_node=model.generator_definition.definition_id,
+    ) as task_report:
+        service.log.info(
+            "Received request to run generator",
+            branch=model.branch,
+            generator_definition=model.generator_definition.definition_id,
+        )
+
+        group = await service.client.get(
+            kind=InfrahubKind.GENERICGROUP,
+            prefetch_relationships=True,
+            populate_store=True,
+            id=model.generator_definition.group_id,
+            branch=model.branch,
+        )
+        await group.members.fetch()
+
+        existing_instances = await service.client.filters(
+            kind=InfrahubKind.GENERATORINSTANCE,
+            definition__ids=[model.generator_definition.definition_id],
+            include=["object"],
+            branch=model.branch,
+        )
+        instance_by_member = {}
+        for instance in existing_instances:
+            instance_by_member[instance.object.peer.id] = instance.id
+
+        repository = await service.client.get(
+            kind=InfrahubKind.REPOSITORY, branch=model.branch, id=model.generator_definition.repository_id
+        )
+
+        for relationship in group.members.peers:
+            member = relationship.peer
+            generator_instance = instance_by_member.get(member.id)
+            request_generator_run_model = RequestGeneratorRun(
+                generator_definition=model.generator_definition,
+                commit=repository.commit.value,
+                generator_instance=generator_instance,
+                repository_id=repository.id,
+                repository_name=repository.name.value,
+                repository_kind=repository.typename,
+                branch_name=model.branch,
+                query=model.generator_definition.query_name,
+                variables=member.extract(params=model.generator_definition.parameters),
+                target_id=member.id,
+                target_name=member.display_label,
+            )
+            await service.workflow.submit_workflow(
+                workflow=REQUEST_GENERATOR_RUN, parameters={"model": request_generator_run_model}
+            )
+
+        await task_report.info(
+            event=f"Generator triggered for {len(group.members.peers)} members in {group.name.value}."
+        )

@@ -85,6 +85,14 @@ REQUEST_GENERATOR_RUN = WorkflowDefinition(
     function="run_generator",
 )
 
+REQUEST_GENERATOR_DEFINITION_RUN = WorkflowDefinition(
+    name="request_generator_definition_run",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.generators.tasks",
+    function="request_generator_definition_run",
+    branch_support=BranchSupportType.AWARE,
+)
+
 REQUEST_ARTIFACT_GENERATE = WorkflowDefinition(
     name="artifact-generate",
     type=WorkflowType.INTERNAL,
@@ -204,4 +212,5 @@ workflows = [
     GIT_REPOSITORIES_MERGE,
     TRIGGER_GENERATOR_DEFINITION_RUN,
     BRANCH_CANCEL_PROPOSED_CHANGES,
+    REQUEST_GENERATOR_DEFINITION_RUN,
 ]
