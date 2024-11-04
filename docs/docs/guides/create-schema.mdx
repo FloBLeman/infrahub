@@ -356,7 +356,7 @@ Overwrite the contents of the `schema_guide.yml` file with this content:
 
 :::note
 
-You will have to grab the id of the model attribute of the NetworkDevice node from the [schema page](http://localhost:8000/schema?branch=network-device-generics&kind=NetworkDevice) in the Web UI
+In this step we are renaming `model` attribute of a NetworkDevice to `device_type`. To do this we have to provide the `id` of the attribute and the new name. You will have to grab the `id` of the model attribute of the NetworkDevice node from the [schema page](http://localhost:8000/schema?branch=network-device-generics&kind=NetworkDevice) in the Web UI.
 
 :::
 
@@ -404,6 +404,7 @@ nodes:
       - name: device_type
         label: Device Type
         kind: Text
+        id: 17bcf8a7-9c03-4a6a-3295-c51345cb1c33
     relationships:
       - name: interfaces
         label: Interfaces
