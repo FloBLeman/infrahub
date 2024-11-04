@@ -1,16 +1,5 @@
-from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Optional
+from typing import Any, Optional
 
-from prefect.client.orchestration import get_client
-from prefect.client.schemas.filters import (
-    FlowRunFilter,
-    FlowRunFilterTags,
-    LogFilter,
-    LogFilterFlowRunId,
-)
-from prefect.client.schemas.sorting import (
-    FlowRunSort,
-)
 from pydantic import ConfigDict, Field
 
 from infrahub.core.constants import TaskConclusion
@@ -21,14 +10,8 @@ from infrahub.core.query.task import TaskNodeCreateQuery, TaskNodeQuery, TaskNod
 from infrahub.core.timestamp import current_timestamp
 from infrahub.database import InfrahubDatabase
 from infrahub.utils import get_nested_dict
-from infrahub.workflows.constants import TAG_NAMESPACE, WorkflowTag
 
 from .task_log import TaskLog
-
-if TYPE_CHECKING:
-    from prefect.client.schemas.objects import Log as PrefectLog
-
-LOG_LEVEL_MAPPING = {10: "debug", 20: "info", 30: "warning", 40: "error", 50: "critical"}
 
 
 class Task(StandardNode):
@@ -55,11 +38,13 @@ class Task(StandardNode):
         cls,
         db: InfrahubDatabase,
         fields: dict[str, Any],
-        limit: int,
-        offset: int,
-        ids: list[str],
-        related_nodes: list[str],
+        limit: int | None = None,
+        offset: int | None = None,
+        ids: list[str] | None = None,
+        related_nodes: list[str] | None = None,
     ) -> dict[str, Any]:
+        ids = ids or []
+        related_nodes = related_nodes or []
         log_fields = get_nested_dict(nested_dict=fields, keys=["edges", "node", "logs", "edges", "node"])
         count = None
         if "count" in fields:
@@ -108,83 +93,3 @@ class Task(StandardNode):
             )
 
         return {"count": count, "edges": nodes}
-
-
-class NewTask:
-    @classmethod
-    async def query(
-        cls,
-        fields: dict[str, Any],
-        related_nodes: list[str],
-        branch: str | None = None,
-        limit: int | None = None,
-        offset: int = 0,
-    ) -> dict[str, Any]:
-        nodes: list[dict] = []
-        count = None
-
-        log_fields = get_nested_dict(nested_dict=fields, keys=["edges", "node", "logs", "edges", "node"])
-        logs_flow: dict[str, list[PrefectLog]] = defaultdict(list)
-
-        async with get_client(sync_client=False) as client:
-            tags = [TAG_NAMESPACE]
-
-            if branch:
-                tags.append(WorkflowTag.BRANCH.render(identifier=branch))
-
-            # We only support one related node for now, need to investigate HOW (and IF) we can support more
-            if related_nodes:
-                tags.append(WorkflowTag.RELATED_NODE.render(identifier=related_nodes[0]))
-
-            flow_run_filters = FlowRunFilter(
-                tags=FlowRunFilterTags(all_=tags),
-            )
-
-            flows = await client.read_flow_runs(
-                flow_run_filter=flow_run_filters,
-                limit=limit,
-                offset=offset,
-                sort=FlowRunSort.START_TIME_DESC,
-            )
-
-            # For now count will just return the number of objects in the response
-            # it won't work well with pagination but it doesn't look like Prefect provide a good option to count all flows
-            if "count" in fields:
-                count = len(flows)
-
-            if log_fields:
-                flow_ids = [flow.id for flow in flows]
-                all_logs = await client.read_logs(log_filter=LogFilter(flow_run_id=LogFilterFlowRunId(any_=flow_ids)))
-                for log in all_logs:
-                    logs_flow[log.flow_run_id].append(log)
-
-            for flow in flows:
-                logs = []
-                if log_fields:
-                    logs = [
-                        {
-                            "node": {
-                                "message": log.message,
-                                "severity": LOG_LEVEL_MAPPING.get(log.level, "error"),
-                                "timestamp": log.timestamp.to_iso8601_string(),
-                            }
-                        }
-                        for log in logs_flow[flow.id]
-                    ]
-
-                nodes.append(
-                    {
-                        "node": {
-                            "title": flow.name,
-                            "conclusion": flow.state_name,
-                            "related_node": "",
-                            "related_node_kind": "",
-                            "created_at": flow.created.to_iso8601_string(),
-                            "updated_at": flow.updated.to_iso8601_string(),
-                            "id": flow.id,
-                            "logs": {"edges": logs},
-                        }
-                    }
-                )
-
-        return {"count": count or 0, "edges": nodes}
