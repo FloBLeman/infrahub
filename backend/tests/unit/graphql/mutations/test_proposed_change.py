@@ -199,6 +199,9 @@ async def test_update_merged_proposed_change(db: InfrahubDatabase, register_core
 async def test_merge_proposed_change_permission_failure(
     db: InfrahubDatabase,
     register_core_models_schema: None,
+    init_service: None,
+    prefect_test: None,
+    patch_services: None,
     session_first_account: AccountSession,
     session_admin: AccountSession,
 ):

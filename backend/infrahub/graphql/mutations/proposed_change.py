@@ -162,10 +162,15 @@ class InfrahubProposedChangeMutation(InfrahubMutationMixin, Mutation):
                                 keep_source_value = check.keep_branch.value.value == "source"
                                 conflict_resolution[check.conflicts.value[0]["path"]] = keep_source_value
 
-                await context.service.workflow.execute_workflow(
-                    workflow=BRANCH_MERGE,
-                    parameters={"branch": source_branch.name, "conflict_resolution": conflict_resolution},
-                )
+                try:
+                    await context.service.workflow.execute_workflow(
+                        workflow=BRANCH_MERGE,
+                        parameters={"branch": source_branch.name, "conflict_resolution": conflict_resolution},
+                    )
+                except Exception as exc:
+                    import traceback
+                    traceback.print_exc()
+                    raise exc
 
         return proposed_change, result
 
