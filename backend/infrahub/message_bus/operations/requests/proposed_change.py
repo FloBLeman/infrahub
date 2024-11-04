@@ -22,13 +22,13 @@ from infrahub.core.registry import registry
 from infrahub.core.validators.checker import schema_validators_checker
 from infrahub.core.validators.determiner import ConstraintValidatorDeterminer
 from infrahub.dependencies.registry import get_component_registry
+from infrahub.generators.models import ProposedChangeGeneratorDefinition
 from infrahub.git.repository import InfrahubRepository, get_initialized_repo
 from infrahub.log import get_logger
 from infrahub.message_bus import InfrahubMessage, messages
 from infrahub.message_bus.types import (
     ProposedChangeArtifactDefinition,
     ProposedChangeBranchDiff,
-    ProposedChangeGeneratorDefinition,
     ProposedChangeRepository,
     ProposedChangeSubscriber,
 )
