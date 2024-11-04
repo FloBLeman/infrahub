@@ -147,6 +147,22 @@ GIT_REPOSITORY_ADD = WorkflowDefinition(
     tags=[WorkflowTag.DATABASE_CHANGE],
 )
 
+GIT_REPOSITORIES_PULL_READ_ONLY = WorkflowDefinition(
+    name="git-repository-pull-read-only",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.git.tasks",
+    function="pull_read_only",
+)
+
+GIT_REPOSITORIES_MERGE = WorkflowDefinition(
+    name="git-repository-merge",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.git.tasks",
+    function="merge_git_repository",
+    branch_support=BranchSupportType.AWARE,
+    tags=[WorkflowTag.DATABASE_CHANGE],
+)
+
 BRANCH_REBASE = WorkflowDefinition(
     name="branch-rebase",
     type=WorkflowType.INTERNAL,

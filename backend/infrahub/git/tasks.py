@@ -6,15 +6,14 @@ from infrahub.core.constants import InfrahubKind, RepositoryInternalStatus
 from infrahub.core.protocols import CoreRepository
 from infrahub.core.registry import registry
 from infrahub.exceptions import RepositoryError
-from infrahub.git.repository import InfrahubRepository, get_initialized_repo
 from infrahub.services import services
 
 from ..log import get_logger
 from ..tasks.artifact import define_artifact
 from ..workflows.catalogue import REQUEST_ARTIFACT_DEFINITION_GENERATE, REQUEST_ARTIFACT_GENERATE
 from ..workflows.utils import add_branch_tag
-from .models import GitRepositoryAdd, RequestArtifactDefinitionGenerate, RequestArtifactGenerate
 from .models import (
+    GitRepositoryAdd,
     GitRepositoryMerge,
     GitRepositoryPullReadOnly,
     RequestArtifactDefinitionGenerate,

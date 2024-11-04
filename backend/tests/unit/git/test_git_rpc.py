@@ -10,15 +10,12 @@ from typing_extensions import Self
 from infrahub.core.constants import InfrahubKind, RepositoryInternalStatus
 from infrahub.exceptions import RepositoryError
 from infrahub.git import InfrahubRepository
-from infrahub.git.models import GitRepositoryAdd
-from infrahub.git.models import GitRepositoryMerge, GitRepositoryPullReadOnly
+from infrahub.git.models import GitRepositoryAdd, GitRepositoryMerge, GitRepositoryPullReadOnly
 from infrahub.git.repository import InfrahubReadOnlyRepository
-from infrahub.git.tasks import add_git_repository
-from infrahub.git.tasks import pull_read_only
+from infrahub.git.tasks import add_git_repository, pull_read_only
 from infrahub.lock import InfrahubLockRegistry
 from infrahub.message_bus import Meta, messages
 from infrahub.message_bus.operations import git
-from infrahub.services import InfrahubServices, services
 from infrahub.services import InfrahubServices, services
 from infrahub.services.adapters.workflow.local import WorkflowLocalExecution
 from infrahub.workflows.catalogue import GIT_REPOSITORIES_MERGE
