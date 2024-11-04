@@ -6,7 +6,7 @@ from unittest.mock import call, patch
 import pytest
 
 from infrahub.core.initialization import create_branch
-from infrahub.graphql.models import RequestGraphQLQueryGroupUpdate
+from infrahub.groups.models import RequestGraphQLQueryGroupUpdate
 from infrahub.workflows.catalogue import REQUEST_GRAPHQL_QUERY_GROUP_UPDATE
 
 if TYPE_CHECKING:

@@ -1,6 +1,7 @@
 import os
 import uuid
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 import ujson
@@ -8,9 +9,9 @@ from infrahub_sdk import Config, InfrahubClient
 from pytest_httpx import HTTPXMock
 
 from infrahub.database import InfrahubDatabase
-from infrahub.graphql.models import RequestGraphQLQueryGroupUpdate
-from infrahub.graphql.tasks import request_graphql_query_group_update
-from infrahub.services import InfrahubServices
+from infrahub.groups.models import RequestGraphQLQueryGroupUpdate
+from infrahub.groups.tasks import update_graphql_query_group
+from tests.helpers.utils import init_service_with_client
 
 
 @pytest.fixture
@@ -44,23 +45,26 @@ async def test_graphql_group_update(db: InfrahubDatabase, httpx_mock: HTTPXMock,
     client = InfrahubClient(
         config=config,
     )
-    service = InfrahubServices(client=client)
 
-    response1 = {
-        "data": {"CoreGraphQLQueryGroupUpsert": {"ok": True, "object": {"id": "957aea37-4510-4386-916f-3febd6665ae6"}}}
-    }
+    with init_service_with_client(client=client), patch("infrahub.groups.tasks.add_branch_tag"):
+        # add_branch_tag requires a prefect client, ie it does not work with WorkflowLocal
+        response1 = {
+            "data": {
+                "CoreGraphQLQueryGroupUpsert": {"ok": True, "object": {"id": "957aea37-4510-4386-916f-3febd6665ae6"}}
+            }
+        }
 
-    httpx_mock.add_response(
-        method="POST",
-        json=response1,
-        match_headers={"X-Infrahub-Tracker": "mutation-coregraphqlquerygroup-upsert"},
-    )
+        httpx_mock.add_response(
+            method="POST",
+            json=response1,
+            match_headers={"X-Infrahub-Tracker": "mutation-coregraphqlquerygroup-upsert"},
+        )
 
-    response2 = {"data": {"RelationshipAdd": {"ok": True}}}
-    httpx_mock.add_response(
-        method="POST",
-        json=response2,
-        match_headers={"X-Infrahub-Tracker": "mutation-relationshipadd"},
-    )
+        response2 = {"data": {"RelationshipAdd": {"ok": True}}}
+        httpx_mock.add_response(
+            method="POST",
+            json=response2,
+            match_headers={"X-Infrahub-Tracker": "mutation-relationshipadd"},
+        )
 
-    await request_graphql_query_group_update.fn(message=model, service=service)
+        await update_graphql_query_group(model=model)

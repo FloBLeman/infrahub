@@ -23,8 +23,8 @@ from infrahub.graphql.metrics import (
     GRAPHQL_RESPONSE_SIZE_METRICS,
     GRAPHQL_TOP_LEVEL_QUERIES_METRICS,
 )
-from infrahub.graphql.models import RequestGraphQLQueryGroupUpdate
 from infrahub.graphql.utils import extract_data
+from infrahub.groups.models import RequestGraphQLQueryGroupUpdate
 from infrahub.log import get_logger
 from infrahub.workflows.catalogue import REQUEST_GRAPHQL_QUERY_GROUP_UPDATE
 
