@@ -8,10 +8,13 @@ from prefect import flow, task
 
 from infrahub import lock
 from infrahub.core.constants import GeneratorInstanceStatus, InfrahubKind
-from infrahub.generators.models import RequestGeneratorDefinitionRun, RequestGeneratorRun
+from infrahub.generators.models import (
+    ProposedChangeGeneratorDefinition,
+    RequestGeneratorDefinitionRun,
+    RequestGeneratorRun,
+)
 from infrahub.git.base import extract_repo_file_information
 from infrahub.git.repository import get_initialized_repo
-from infrahub.message_bus.types import ProposedChangeGeneratorDefinition
 from infrahub.services import InfrahubServices, services
 from infrahub.workflows.catalogue import REQUEST_GENERATOR_DEFINITION_RUN, REQUEST_GENERATOR_RUN
 
@@ -136,17 +139,12 @@ async def run_generator_definition(branch: str) -> None:
 
 
 @flow(name="request_generator_definition_run")
-async def request_generator_definition_run(model: RequestGeneratorDefinitionRun, service: InfrahubServices) -> None:
+async def request_generator_definition_run(model: RequestGeneratorDefinitionRun) -> None:
+    service = services.service
     async with service.task_report(
         title="Executing Generator",
         related_node=model.generator_definition.definition_id,
     ) as task_report:
-        service.log.info(
-            "Received request to run generator",
-            branch=model.branch,
-            generator_definition=model.generator_definition.definition_id,
-        )
-
         group = await service.client.get(
             kind=InfrahubKind.GENERICGROUP,
             prefetch_relationships=True,
