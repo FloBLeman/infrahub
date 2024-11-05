@@ -277,7 +277,7 @@ def memgraph(request: pytest.FixtureRequest, load_settings_before_session) -> Op
     if not INFRAHUB_USE_TEST_CONTAINERS or config.SETTINGS.database.db_type != "memgraph":
         return None
 
-    memgraph_image = os.getenv("MEMGRAPH_DOCKER_IMAGE", "memgraph/memgraph-mage:1.19-memgraph-2.19-no-ml")
+    memgraph_image = os.getenv("MEMGRAPH_DOCKER_IMAGE", "memgraph/memgraph-mage:1.20.1-memgraph-2.20.1-no-ml")
 
     container = (
         DockerContainer(image=memgraph_image, init=True)
