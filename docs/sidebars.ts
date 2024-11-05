@@ -48,8 +48,7 @@ const sidebars: SidebarsConfig = {
             'tutorials/getting-started/lineage-information',
             'tutorials/getting-started/resource-manager',
             'tutorials/getting-started/git-integration',
-            'tutorials/getting-started/jinja2-integration',
-            'tutorials/getting-started/custom-api-endpoint',
+            'tutorials/getting-started/rendering-configuration',
             'tutorials/getting-started/graphql-query',
             'tutorials/getting-started/graphql-mutation'
           ],
