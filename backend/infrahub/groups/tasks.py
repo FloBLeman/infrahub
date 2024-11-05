@@ -1,13 +1,14 @@
+from infrahub_sdk.groups import group_add_subscriber
 from infrahub_sdk.utils import dict_hash
+from prefect import flow
 
 from infrahub.core.constants import InfrahubKind
-from infrahub.graphql.tasks import _group_add_subscriber
 from infrahub.groups.models import RequestGraphQLQueryGroupUpdate
 from infrahub.services import services
 from infrahub.workflows.utils import add_branch_tag
 
 
-# @flow(name="update_graphql_query_group")
+@flow(name="update_graphql_query_group")
 async def update_graphql_query_group(model: RequestGraphQLQueryGroupUpdate) -> None:
     """Create or Update a GraphQLQueryGroup."""
 
@@ -30,6 +31,6 @@ async def update_graphql_query_group(model: RequestGraphQLQueryGroupUpdate) -> N
     await group.save(allow_upsert=True)
 
     if model.subscribers:
-        await _group_add_subscriber(
+        await group_add_subscriber(
             client=service.client, group=group, subscribers=model.subscribers, branch=model.branch
         )

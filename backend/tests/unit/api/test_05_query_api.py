@@ -7,7 +7,7 @@ import pytest
 
 from infrahub.core.initialization import create_branch
 from infrahub.groups.models import RequestGraphQLQueryGroupUpdate
-from infrahub.workflows.catalogue import REQUEST_GRAPHQL_QUERY_GROUP_UPDATE
+from infrahub.workflows.catalogue import UPDATE_GRAPHQL_QUERY_GROUP
 
 if TYPE_CHECKING:
     from fastapi.testclient import TestClient
@@ -72,7 +72,7 @@ async def test_query_endpoint_group_no_params(
 
         expected_calls = [
             call(
-                workflow=REQUEST_GRAPHQL_QUERY_GROUP_UPDATE,
+                workflow=UPDATE_GRAPHQL_QUERY_GROUP,
                 parameters={"model": model},
             ),
         ]
@@ -113,7 +113,7 @@ async def test_query_endpoint_group_params(
 
         expected_calls = [
             call(
-                workflow=REQUEST_GRAPHQL_QUERY_GROUP_UPDATE,
+                workflow=UPDATE_GRAPHQL_QUERY_GROUP,
                 parameters={"model": model},
             ),
         ]
