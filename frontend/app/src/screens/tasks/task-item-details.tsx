@@ -18,14 +18,14 @@ import { Logs, tLog } from "./logs";
 
 export const getStateBadge: { [key: string]: any } = {
   SCHEDULED: <Badge variant={"blue"}>SCHEDULED</Badge>,
-  PENDING: <Badge variant={"blue"}>PENDING</Badge>,
-  RUNNING: <Badge variant={"blue"}>RUNNING</Badge>,
-  COMPLETED: <Badge variant={"blue"}>COMPLETED</Badge>,
-  FAILED: <Badge variant={"blue"}>FAILED</Badge>,
-  CANCELLED: <Badge variant={"blue"}>CANCELLED</Badge>,
-  CRASHED: <Badge variant={"blue"}>CRASHED</Badge>,
-  PAUSED: <Badge variant={"blue"}>PAUSED</Badge>,
-  CANCELLING: <Badge variant={"blue"}>CANCELLING</Badge>,
+  PENDING: <Badge variant={"blue-outline"}>PENDING</Badge>,
+  RUNNING: <Badge variant={"green-outline"}>RUNNING</Badge>,
+  COMPLETED: <Badge variant={"green"}>COMPLETED</Badge>,
+  FAILED: <Badge variant={"red"}>FAILED</Badge>,
+  CANCELLED: <Badge variant={"red-outline"}>CANCELLED</Badge>,
+  CRASHED: <Badge variant={"yellow"}>CRASHED</Badge>,
+  PAUSED: <Badge variant={"blue-outline"}>PAUSED</Badge>,
+  CANCELLING: <Badge variant={"gray"}>CANCELLING</Badge>,
 };
 
 export const TaskItemDetails = forwardRef((props, ref) => {
