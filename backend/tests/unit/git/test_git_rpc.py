@@ -77,7 +77,7 @@ class TestAddRepository:
         message = messages.GitRepositoryAdd(
             repository_id=repo_id,
             repository_name=git_upstream_repo_01["name"],
-            location=git_upstream_repo_01["path"],
+            location=str(git_upstream_repo_01["path"]),
             default_branch_name=self.default_branch_name,
             infrahub_branch_name=self.default_branch_name,
             internal_status="active",
@@ -91,7 +91,7 @@ class TestAddRepository:
         self.mock_repo_class.new.assert_awaited_once_with(
             id=repo_id,
             name=git_upstream_repo_01["name"],
-            location=git_upstream_repo_01["path"],
+            location=str(git_upstream_repo_01["path"]),
             client=self.client,
             task_report=self.git_report,
             infrahub_branch_name=self.default_branch_name,
@@ -216,7 +216,7 @@ class TestAddReadOnly:
         message = messages.GitRepositoryAddReadOnly(
             repository_id=repo_id,
             repository_name=git_upstream_repo_01["name"],
-            location=git_upstream_repo_01["path"],
+            location=str(git_upstream_repo_01["path"]),
             ref="branch01",
             infrahub_branch_name="read-only-branch",
             internal_status="active",
@@ -228,7 +228,7 @@ class TestAddReadOnly:
         self.mock_repo_class.new.assert_awaited_once_with(
             id=repo_id,
             name=git_upstream_repo_01["name"],
-            location=git_upstream_repo_01["path"],
+            location=str(git_upstream_repo_01["path"]),
             client=self.client,
             ref="branch01",
             infrahub_branch_name="read-only-branch",
