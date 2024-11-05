@@ -91,13 +91,23 @@ export const TaskItems = forwardRef(({ hideRelatedNode }: TaskItemsProps, ref) =
   const rows = edges.map((edge: any) => ({
     link: getUrl(edge.node.id),
     values: {
-      title: edge.node.title,
-      conclusion: getConclusionBadge[edge.node.conclusion],
-      related_node: (
-        <Id id={edge.node.related_node} kind={edge.node.related_node_kind} preventCopy />
-      ),
-      duration: <DurationDisplay date={edge.node.created_at} endDate={edge.node.updated_at} />,
-      updated_at: <DateDisplay date={edge.node.updated_at} />,
+      title: {
+        display: edge.node.title,
+      },
+      conclusion: {
+        display: getConclusionBadge[edge.node.conclusion],
+      },
+      related_node: {
+        display: edge.node.related_node_kind && (
+          <Id id={edge.node.related_node} kind={edge.node.related_node_kind} preventCopy />
+        ),
+      },
+      duration: {
+        display: <DurationDisplay date={edge.node.created_at} endDate={edge.node.updated_at} />,
+      },
+      updated_at: {
+        display: <DateDisplay date={edge.node.updated_at} />,
+      },
     },
   }));
 

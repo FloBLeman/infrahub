@@ -89,8 +89,9 @@ export const TaskItemDetails = forwardRef((props, ref) => {
       id: object.id,
       title: object.title,
       conclusion: getConclusionBadge[object.conclusion],
-      related_node: <Id id={object.related_node} kind={object.related_node_kind} preventCopy />,
-      related_node_kind: object.related_node_kind,
+      related_node: object.related_node_kind && (
+        <Id id={object.related_node} kind={object.related_node_kind} preventCopy />
+      ),
       duration: <DurationDisplay date={object.created_at} endDate={object.updated_at} />,
       updated_at: <DateDisplay date={object.updated_at} />,
     },
