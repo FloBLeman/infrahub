@@ -190,7 +190,7 @@ BRANCH_CANCEL_PROPOSED_CHANGES = WorkflowDefinition(
 UPDATE_GRAPHQL_QUERY_GROUP = WorkflowDefinition(
     name="update_graphql_query_group",
     type=WorkflowType.INTERNAL,
-    module="infrahub.graphql.tasks",
+    module="infrahub.groups.tasks",
     function="update_graphql_query_group",
     branch_support=BranchSupportType.AWARE,
 )

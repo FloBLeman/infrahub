@@ -67,4 +67,4 @@ async def test_graphql_group_update(db: InfrahubDatabase, httpx_mock: HTTPXMock,
             match_headers={"X-Infrahub-Tracker": "mutation-relationshipadd"},
         )
 
-        await update_graphql_query_group(model=model)
+        await update_graphql_query_group.fn(model=model)
