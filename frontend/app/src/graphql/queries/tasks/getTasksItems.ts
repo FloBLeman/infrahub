@@ -6,13 +6,14 @@ query GetTasks($offset: Int, $limit: Int) {
     count
     edges {
       node {
-        conclusion
         created_at
         id
         related_node
         related_node_kind
         title
         updated_at
+        state
+        progress
       }
     }
   }

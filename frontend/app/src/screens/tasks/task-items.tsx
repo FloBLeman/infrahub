@@ -5,7 +5,6 @@ import useQuery from "@/hooks/useQuery";
 import { gql } from "@apollo/client";
 
 import { DateDisplay } from "@/components/display/date-display";
-import { DurationDisplay } from "@/components/display/duration-display";
 import { Id } from "@/components/ui/id";
 import { QSP } from "@/config/qsp";
 import { getTasksItems } from "@/graphql/queries/tasks/getTasksItems";
@@ -14,7 +13,7 @@ import LoadingScreen from "@/screens/loading-screen/loading-screen";
 import { constructPath } from "@/utils/fetch";
 import { forwardRef, useImperativeHandle } from "react";
 import { useLocation, useParams } from "react-router-dom";
-import { getConclusionBadge } from "./task-item-details";
+import { getStateBadge } from "./task-item-details";
 
 interface TaskItemsProps {
   hideRelatedNode?: boolean;
@@ -58,16 +57,16 @@ export const TaskItems = forwardRef(({ hideRelatedNode }: TaskItemsProps, ref) =
       label: "Title",
     },
     {
-      name: "conclusion",
-      label: "Conclusion",
+      name: "state",
+      label: "State",
     },
     !hideRelatedNode && {
       name: "related_node",
       label: "Related node",
     },
     {
-      name: "duration",
-      label: "Duration",
+      name: "progress",
+      label: "Progress",
     },
     {
       name: "updated_at",
@@ -94,8 +93,8 @@ export const TaskItems = forwardRef(({ hideRelatedNode }: TaskItemsProps, ref) =
       title: {
         display: edge.node.title,
       },
-      conclusion: {
-        display: getConclusionBadge[edge.node.conclusion],
+      state: {
+        display: getStateBadge[edge.node.state],
       },
       related_node: {
         display: edge.node.related_node_kind && (
@@ -103,7 +102,7 @@ export const TaskItems = forwardRef(({ hideRelatedNode }: TaskItemsProps, ref) =
         ),
       },
       duration: {
-        display: <DurationDisplay date={edge.node.created_at} endDate={edge.node.updated_at} />,
+        display: edge.node.progress,
       },
       updated_at: {
         display: <DateDisplay date={edge.node.updated_at} />,
