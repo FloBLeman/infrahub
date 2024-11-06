@@ -28,22 +28,27 @@ export const getStateBadge: { [key: string]: any } = {
   CANCELLING: <Badge variant={"gray"}>CANCELLING</Badge>,
 };
 
-export const TaskItemDetails = forwardRef((props, ref) => {
-  const [taskId] = useQueryParam(QSP.TASK_ID, StringParam);
+interface TaskItemDetailsProps {
+  id?: string;
+  pollInterval?: number;
+}
+
+export const TaskItemDetails = forwardRef(({ id, pollInterval }: TaskItemDetailsProps, ref) => {
+  const [idFromQsp] = useQueryParam(QSP.TASK_ID, StringParam);
   const [search, setSearch] = useState("");
 
-  const { task } = useParams();
+  const { task: idFromParams } = useParams();
 
   const queryString = getTaskItemDetails({
     kind: TASK_OBJECT,
-    id: taskId || task,
+    id: id || idFromParams || idFromQsp,
   });
 
   const query = gql`
     ${queryString}
   `;
 
-  const { loading, error, data = {}, refetch } = useQuery(query);
+  const { loading, error, data = {}, refetch } = useQuery(query, { pollInterval });
 
   // Provide refetch function to parent
   useImperativeHandle(ref, () => ({ refetch }));
@@ -53,7 +58,7 @@ export const TaskItemDetails = forwardRef((props, ref) => {
   }
 
   if (loading) {
-    return <LoadingScreen hideText />;
+    return <LoadingScreen message="Loading task..." />;
   }
 
   const result = data ? (data[TASK_OBJECT] ?? {}) : {};

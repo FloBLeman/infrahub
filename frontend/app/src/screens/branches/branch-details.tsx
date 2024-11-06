@@ -29,7 +29,7 @@ import { useAtomValue } from "jotai/index";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { TaskLoader } from "./task-loader";
+import { TaskItemDetails } from "../tasks/task-item-details";
 
 export const BranchDetails = () => {
   const { "*": branchName } = useParams();
@@ -237,7 +237,7 @@ export const BranchDetails = () => {
 
         {isLoadingRequest && <LoadingScreen />}
 
-        {taskId && !isLoadingRequest && <TaskLoader id={taskId} />}
+        {taskId && !isLoadingRequest && <TaskItemDetails id={taskId} pollInterval={1000} />}
       </div>
 
       <SlideOver

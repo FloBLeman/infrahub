@@ -9,7 +9,7 @@ export type tLog = {
   timestamp: string;
 };
 
-type tLogsProps = {
+type LogsProps = {
   logs: tLog[];
 };
 
@@ -21,9 +21,7 @@ export const getSeverityBadge: { [key: string]: any } = {
   critical: <Badge type={BADGE_TYPES.CANCEL}>critical</Badge>,
 };
 
-export const Logs = (props: tLogsProps) => {
-  const { logs } = props;
-
+export const Logs = ({ logs }: LogsProps) => {
   const columns = [
     {
       name: "message",
