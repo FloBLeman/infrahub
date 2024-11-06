@@ -46,7 +46,7 @@ async def add_read_only(message: messages.GitRepositoryAddReadOnly, service: Inf
                     location=message.location,
                     repository_id=message.repository_id,
                     repository_name=message.repository_name,
-                    default_branch_name=message.default_branch_name,
+                    default_branch_name=None,
                     infrahub_branch_name=message.infrahub_branch_name,
                 )
                 await service.send(message=notification)
