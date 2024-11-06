@@ -15,7 +15,9 @@ from .event_worker_newprimaryapi import EventWorkerNewPrimaryAPI
 from .finalize_validator_execution import FinalizeValidatorExecution
 from .git_diff_namesonly import GitDiffNamesOnly, GitDiffNamesOnlyResponse
 from .git_file_get import GitFileGet, GitFileGetResponse
+from .git_repository_clone import GitRepositoryClone
 from .git_repository_connectivity import GitRepositoryConnectivity
+from .git_repository_fetch import GitRepositoryFetch
 from .git_repository_importobjects import GitRepositoryImportObjects
 from .git_repository_read_only_add import GitRepositoryAddReadOnly
 from .proposed_change.request_proposedchange_dataintegrity import RequestProposedChangeDataIntegrity
@@ -58,6 +60,8 @@ MESSAGE_MAP: dict[str, type[InfrahubMessage]] = {
     "git.repository.import_objects": GitRepositoryImportObjects,
     "schema.migration.path": SchemaMigrationPath,
     "schema.validator.path": SchemaValidatorPath,
+    "refresh.git.clone": GitRepositoryClone,
+    "refresh.git.fetch": GitRepositoryFetch,
     "refresh.registry.branches": RefreshRegistryBranches,
     "refresh.registry.rebased_branch": RefreshRegistryRebasedBranch,
     "refresh.webhook.configuration": RefreshWebhookConfiguration,
