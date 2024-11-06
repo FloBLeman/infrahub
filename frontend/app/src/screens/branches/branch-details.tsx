@@ -137,7 +137,7 @@ export const BranchDetails = () => {
                   className="mr-0 md:mr-3"
                   onClick={() =>
                     branchAction({
-                      successMessage: "Branch merged successfully!",
+                      successMessage: "Branch merge requested!",
                       errorMessage: "An error occurred while merging the branch",
                       mutation: BRANCH_MERGE,
                     })
@@ -162,7 +162,7 @@ export const BranchDetails = () => {
                   className="mr-0 md:mr-3"
                   onClick={() =>
                     branchAction({
-                      successMessage: "Branch rebased successfully!",
+                      successMessage: "Branch rebase requested!",
                       errorMessage: "An error occurred while rebasing the branch",
                       mutation: BRANCH_REBASE,
                     })
@@ -177,7 +177,7 @@ export const BranchDetails = () => {
                   className="mr-0 md:mr-3"
                   onClick={() =>
                     branchAction({
-                      successMessage: "The branch is valid!",
+                      successMessage: "Branch validation requested!",
                       errorMessage: "An error occurred while validating the branch",
                       mutation: BRANCH_VALIDATE,
                     })
@@ -252,7 +252,7 @@ export const BranchDetails = () => {
           onCancel={() => setDisplayModal(false)}
           onDelete={async () => {
             await branchAction({
-              successMessage: "Branch deleted successfully!",
+              successMessage: "Branch deleted requested!",
               errorMessage: "An error occurred while deleting the branch",
               mutation: BRANCH_DELETE,
             });
