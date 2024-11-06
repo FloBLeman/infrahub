@@ -1,6 +1,5 @@
 import { TASK_OBJECT } from "@/config/constants";
 import useQuery from "@/hooks/useQuery";
-import { gql } from "@apollo/client";
 
 import { DateDisplay } from "@/components/display/date-display";
 import { List } from "@/components/table/list";
@@ -8,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Id } from "@/components/ui/id";
 import { SearchInput } from "@/components/ui/search-input";
 import { QSP } from "@/config/qsp";
-import { getTaskItemDetails } from "@/graphql/queries/tasks/getTasksItemDetails";
+import { TASK_DETAILS } from "@/graphql/queries/tasks/getTasksItemDetails";
 import ErrorScreen from "@/screens/errors/error-screen";
 import LoadingScreen from "@/screens/loading-screen/loading-screen";
 import { forwardRef, useImperativeHandle, useState } from "react";
@@ -28,27 +27,18 @@ export const getStateBadge: { [key: string]: any } = {
   CANCELLING: <Badge variant={"gray"}>CANCELLING</Badge>,
 };
 
-interface TaskItemDetailsProps {
-  id?: string;
-  pollInterval?: number;
-}
-
-export const TaskItemDetails = forwardRef(({ id, pollInterval }: TaskItemDetailsProps, ref) => {
+export const TaskItemDetails = forwardRef((props, ref) => {
   const [idFromQsp] = useQueryParam(QSP.TASK_ID, StringParam);
   const [search, setSearch] = useState("");
 
   const { task: idFromParams } = useParams();
 
-  const queryString = getTaskItemDetails({
-    kind: TASK_OBJECT,
-    id: id || idFromParams || idFromQsp,
-  });
-
-  const query = gql`
-    ${queryString}
-  `;
-
-  const { loading, error, data = {}, refetch } = useQuery(query, { pollInterval });
+  const {
+    loading,
+    error,
+    data = {},
+    refetch,
+  } = useQuery(TASK_DETAILS, { variables: { id: idFromParams || idFromQsp } });
 
   // Provide refetch function to parent
   useImperativeHandle(ref, () => ({ refetch }));

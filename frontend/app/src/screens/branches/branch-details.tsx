@@ -6,7 +6,6 @@ import ObjectForm from "@/components/form/object-form";
 import ModalDelete from "@/components/modals/modal-delete";
 import { List } from "@/components/table/list";
 import { ALERT_TYPES, Alert } from "@/components/ui/alert";
-import { Card } from "@/components/ui/card";
 import { PROPOSED_CHANGES_OBJECT } from "@/config/constants";
 import { QSP } from "@/config/qsp";
 import graphqlClient from "@/graphql/graphqlClientApollo";
@@ -31,7 +30,7 @@ import { useAtomValue } from "jotai/index";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { TaskItemDetails } from "../tasks/task-item-details";
+import { TaskDisplay } from "./task-display";
 
 export const BranchDetails = () => {
   const { "*": branchName } = useParams();
@@ -128,8 +127,8 @@ export const BranchDetails = () => {
     <div className="flex flex-col gap-4">
       <List columns={columns} row={row} />
 
-      <div className="">
-        <div className="mb-4">
+      <div className="flex flex-col gap-4">
+        <div>
           {branch?.name && (
             <>
               <div className="flex flex-1 flex-col md:flex-row">
@@ -205,11 +204,7 @@ export const BranchDetails = () => {
 
         {isLoadingRequest && <LoadingScreen />}
 
-        {taskId && !isLoadingRequest && (
-          <Card>
-            <TaskItemDetails id={taskId} pollInterval={1000} />
-          </Card>
-        )}
+        {taskId && !isLoadingRequest && <TaskDisplay id={taskId} />}
       </div>
 
       <SlideOver
