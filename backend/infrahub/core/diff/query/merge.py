@@ -166,12 +166,17 @@ CALL {
             CALL {
                 WITH n, rel_name, rel_peer_id, related_rel_status
                 MATCH (n)
-                    -[source_r_rel_1:IS_RELATED {branch: $source_branch}]
+                    -[source_r_rel_1:IS_RELATED]
                     -(r:Relationship {name: rel_name})
-                    -[source_r_rel_2:IS_RELATED {branch: $source_branch}]
+                    -[source_r_rel_2:IS_RELATED]
                     -(:Node {uuid: rel_peer_id})
-                WHERE source_r_rel_1.from <= $at AND source_r_rel_1.to IS NULL
+                WHERE source_r_rel_1.branch IN [$source_branch, $target_branch]
+                AND source_r_rel_2.branch IN [$source_branch, $target_branch]
+                AND source_r_rel_1.from <= $at AND source_r_rel_1.to IS NULL
                 AND source_r_rel_2.from <= $at AND source_r_rel_2.to IS NULL
+                WITH n, rel_name, rel_peer_id, related_rel_status, r, source_r_rel_1, source_r_rel_2
+                ORDER BY source_r_rel_1.branch_level DESC, source_r_rel_2.branch_level DESC, source_r_rel_1.from DESC, source_r_rel_2.from DESC
+                LIMIT 1
                 RETURN r, CASE
                     WHEN startNode(source_r_rel_1).uuid = n.uuid THEN "r"
                     ELSE "l"
@@ -351,8 +356,12 @@ CALL {
                 // with different is_default values
                 // ------------------------------
                 WITH attr_rel, property_diff
-                OPTIONAL MATCH (attr_rel)-[r_attr_val:HAS_VALUE]->(av:AttributeValue {value: property_diff.value})
+                OPTIONAL MATCH (attr_rel)-[r_attr_val:HAS_VALUE]->(av:AttributeValue)
                 WHERE property_diff.property_type = "HAS_VALUE"
+                AND (
+                    av.value = property_diff.value
+                    OR toLower(toString(av.value)) = toLower(toString(property_diff.value))
+                )
                 AND r_attr_val.branch IN [$source_branch, $target_branch]
                 RETURN av
                 ORDER BY r_attr_val.from DESC
@@ -386,7 +395,7 @@ CALL {
             WHERE type(r_prop) = prop_type
             AND r_prop.status = prop_rel_status
             AND r_prop.from <= $at
-            AND (r_prop.to >= $at OR r_prop.to IS NULL)
+            AND (r_prop.to > $at OR r_prop.to IS NULL)
             RETURN r_prop
         }
         WITH attr_rel, prop_rel_status, prop_type, prop_node, r_prop
@@ -427,5 +436,46 @@ CALL {
         }
     }
 }
+        """
+        self.add_to_query(query=query)
+
+
+class DiffMergeRollbackQuery(Query):
+    name = "diff_merge_rollback"
+    type = QueryType.WRITE
+    insert_return = False
+
+    def __init__(
+        self,
+        at: Timestamp,
+        target_branch: Branch,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(**kwargs)
+        self.at = at
+        self.target_branch = target_branch
+        self.source_branch_name = self.branch.name
+
+    async def query_init(self, db: InfrahubDatabase, **kwargs: Any) -> None:
+        self.params = {
+            "at": self.at.to_string(),
+            "target_branch": self.target_branch.name,
+            "source_branch": self.source_branch_name,
+        }
+        query = """
+        // ---------------------------
+        // reset to times on target branch
+        // ---------------------------
+        CALL {
+            OPTIONAL MATCH ()-[r_to {to: $at, branch: $target_branch}]-()
+            SET r_to.to = NULL
+        }
+        // ---------------------------
+        // reset from times on target branch
+        // ---------------------------
+        CALL {
+            OPTIONAL MATCH ()-[r_from {from: $at, branch: $target_branch}]-()
+            DELETE r_from
+        }
         """
         self.add_to_query(query=query)

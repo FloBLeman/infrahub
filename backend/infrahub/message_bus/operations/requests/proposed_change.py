@@ -8,26 +8,27 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Union
 
 import pytest
-from infrahub_sdk.protocols import CoreGeneratorDefinition, CoreProposedChange
+from infrahub_sdk.protocols import CoreGeneratorDefinition
 from prefect import flow
 from pydantic import BaseModel
 
 from infrahub import config, lock
-from infrahub.core.constants import CheckType, InfrahubKind, ProposedChangeState, RepositoryInternalStatus
+from infrahub.core.constants import CheckType, InfrahubKind, RepositoryInternalStatus
 from infrahub.core.diff.coordinator import DiffCoordinator
-from infrahub.core.diff.model.diff import SchemaConflict
+from infrahub.core.diff.model.diff import DiffElementType, SchemaConflict
+from infrahub.core.diff.model.path import NodeDiffFieldSummary
 from infrahub.core.integrity.object_conflict.conflict_recorder import ObjectConflictValidatorRecorder
 from infrahub.core.registry import registry
 from infrahub.core.validators.checker import schema_validators_checker
 from infrahub.core.validators.determiner import ConstraintValidatorDeterminer
 from infrahub.dependencies.registry import get_component_registry
+from infrahub.generators.models import ProposedChangeGeneratorDefinition
 from infrahub.git.repository import InfrahubRepository, get_initialized_repo
 from infrahub.log import get_logger
 from infrahub.message_bus import InfrahubMessage, messages
 from infrahub.message_bus.types import (
     ProposedChangeArtifactDefinition,
     ProposedChangeBranchDiff,
-    ProposedChangeGeneratorDefinition,
     ProposedChangeRepository,
     ProposedChangeSubscriber,
 )
@@ -68,19 +69,6 @@ class DefinitionSelect(IntFlag):
             return f"Requesting generation due to {' and '.join(change_types)}"
 
         return "Doesn't require changes due to no relevant modified kinds or file changes in Git"
-
-
-@flow(name="proposed-changed-cancel")
-async def cancel(message: messages.RequestProposedChangeCancel, service: InfrahubServices) -> None:
-    """Cancel a proposed change."""
-    async with service.task_report(
-        related_node=message.proposed_change,
-        title="Canceling proposed change",
-    ) as task_report:
-        await task_report.info("Canceling proposed change as the source branch was deleted", id=message.proposed_change)
-        proposed_change = await service.client.get(kind=CoreProposedChange, id=message.proposed_change)
-        proposed_change.state.value = ProposedChangeState.CANCELED.value
-        await proposed_change.save()
 
 
 @flow(name="proposed-changed-data-integrity")
@@ -408,8 +396,8 @@ async def run_generators(message: messages.RequestProposedChangeRunGenerators, s
         related_node=message.proposed_change,
         title="Evaluating Generators",
     ) as task_report:
-        generators: list[CoreGeneratorDefinition] = await service.client.filters(
-            kind=InfrahubKind.GENERATORDEFINITION,
+        generators = await service.client.filters(
+            kind=CoreGeneratorDefinition,
             prefetch_relationships=True,
             populate_store=True,
             branch=message.source_branch,
@@ -894,5 +882,22 @@ async def _populate_subscribers(branch_diff: ProposedChangeBranchDiff, service: 
 async def _get_proposed_change_schema_integrity_constraints(
     message: messages.RequestProposedChangeSchemaIntegrity, schema: SchemaBranch
 ) -> list[SchemaUpdateConstraintInfo]:
+    node_diff_field_summary_map: dict[str, NodeDiffFieldSummary] = {}
+    for node_diff in message.branch_diff.diff_summary:
+        node_kind = node_diff["kind"]
+        if node_kind not in node_diff_field_summary_map:
+            node_diff_field_summary_map[node_kind] = NodeDiffFieldSummary(kind=node_kind)
+        field_summary = node_diff_field_summary_map[node_kind]
+        for element in node_diff["elements"]:
+            element_name = element["name"]
+            element_type = element["element_type"]
+            if element_type.lower() in (
+                DiffElementType.RELATIONSHIP_MANY.value.lower(),
+                DiffElementType.RELATIONSHIP_ONE.value.lower(),
+            ):
+                field_summary.relationship_names.add(element_name)
+            elif element_type.lower() in (DiffElementType.ATTRIBUTE.value.lower(),):
+                field_summary.attribute_names.add(element_name)
+
     determiner = ConstraintValidatorDeterminer(schema_branch=schema)
-    return await determiner.get_constraints(node_diffs=message.branch_diff.diff_summary)
+    return await determiner.get_constraints(node_diffs=list(node_diff_field_summary_map.values()))

@@ -91,7 +91,7 @@ const UnauthenticatedAccountMenu = () => {
   return (
     <DropdownMenu>
       <Link
-        className="flex items-center h-14 w-full rounded-lg p-2 gap-2 hover:bg-indigo-50 overflow-hidden"
+        className="flex items-center h-14 w-full rounded-lg p-2 gap-2 hover:bg-indigo-50 overflow-hidden shrink-0"
         to="/login"
         state={{ from: location }}
       >
@@ -174,7 +174,6 @@ const AuthenticatedAccountMenu = ({
 
           <div className="group-data-[collapsed=true]/sidebar:hidden overflow-hidden">
             <div className="font-semibold text-sm truncate">{profile?.label?.value}</div>
-            <div className="text-xs text-neutral-500 truncate">{profile?.role?.value}</div>
           </div>
 
           <Icon
@@ -207,7 +206,7 @@ const AuthenticatedAccountMenu = ({
 
 const AccountMenuSkeleton = () => {
   return (
-    <div className="flex items-center gap-2 p-2">
+    <div className="flex items-center gap-2 p-2 shrink-0">
       <Skeleton className="rounded-full h-10 w-10" />
 
       <div className="flex-grow space-y-2 group-data-[collapsed=true]/sidebar:hidden">

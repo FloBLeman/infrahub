@@ -4,6 +4,7 @@ APIs
 artifact_definitions
 artifact_name
 async
+Authentik
 boolean
 check_definitions
 class_name
@@ -81,6 +82,7 @@ Newsfragment
 Nornir
 npm
 o'brian
+order_weight
 openconfig
 opentelemetry
 order_by
@@ -95,6 +97,7 @@ REST
 ressources
 schema_mapping
 sdk
+subcommand
 subnet
 template_path
 toml

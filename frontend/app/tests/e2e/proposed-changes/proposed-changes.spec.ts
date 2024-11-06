@@ -70,10 +70,10 @@ test.describe("/proposed-changes", () => {
         await page.getByRole("option", { name: pcBranchName }).click();
         await page.getByLabel("Name *").fill(pcName);
         await page.getByTestId("codemirror-editor").getByRole("textbox").fill("My description");
-        await page.getByTestId("select-open-option-button").click();
-        await page.getByRole("option", { name: "Architecture Team" }).click();
-        await page.getByRole("option", { name: "Crm Synchronization" }).click();
-        await page.getByTestId("select-open-option-button").click();
+        await page.getByLabel("Reviewers").click();
+        await page.getByRole("option", { name: "Olivia Carter" }).click();
+        await page.getByRole("option", { name: "CRM Synchronization" }).click();
+        await page.getByLabel("Reviewers").click(); // to close the combobox
 
         await page.getByRole("button", { name: "Create proposed change" }).click();
         await expect(page.getByText("Proposed change created")).toBeVisible();
@@ -96,14 +96,18 @@ test.describe("/proposed-changes", () => {
             .getByTestId("codemirror-editor")
             .getByRole("textbox")
             .fill("My description edit");
-          await page.getByTestId("multi-select-input").getByText("Crm Synchronization").click();
-          await page.getByLabel("Reviewers").click(); // Hack to close Reviewers select option list
+          await page
+            .locator("span")
+            .filter({ hasText: "Crm Synchronization×" })
+            .getByLabel("Remove")
+            .click();
+          await page.getByLabel("Reviewers").click(); // to close the combobox
           await page.getByRole("button", { name: "Save" }).click();
           await expect(page.getByText("ProposedChange updated")).toBeVisible();
 
           await expect(page.getByRole("heading", { name: pcNameEdit, exact: true })).toBeVisible();
           await expect(page.getByTestId("pc-description")).toContainText("My description edit");
-          await expect(page.getByText("ReviewersAT")).toBeVisible();
+          await expect(page.getByText("ReviewersOC")).toBeVisible();
         });
       });
 

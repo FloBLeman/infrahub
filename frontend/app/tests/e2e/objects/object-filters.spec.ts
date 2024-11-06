@@ -26,17 +26,9 @@ test.describe("Object filters", () => {
         await page.getByLabel("Role").click();
         await page.getByRole("option", { name: "Edge Router" }).click();
 
-        const tagsMultiSelectOpenButton = page
-          .getByTestId("side-panel-container")
-          .getByText("Tags")
-          .locator("../..")
-          .getByTestId("select-open-option-button");
-        await tagsMultiSelectOpenButton.click();
-
+        await page.getByLabel("Tags").click();
         await page.getByTestId("side-panel-container").getByText("red").click();
-
-        // Closes the multiselect
-        await tagsMultiSelectOpenButton.click();
+        await page.getByLabel("Tags").click(); // Closes the multiselect
 
         await page.getByRole("button", { name: "Apply filters" }).scrollIntoViewIfNeeded();
         await page.getByRole("button", { name: "Apply filters" }).click();
@@ -81,7 +73,9 @@ test.describe("Object filters", () => {
     await page.getByRole("option", { name: "atl1-core1" }).click();
     await page.getByRole("button", { name: "Apply filters" }).click();
 
-    await expect(page.getByRole("row", { name: "InfraInterfaceL3 Loopback0" })).toBeVisible();
+    await expect(
+      page.getByRole("row", { name: "InfraInterfaceL3 atl1-core1 Loopback0" })
+    ).toBeVisible();
     await expect(page.getByRole("link", { name: "Connected to jfk1-edge2" })).toBeHidden();
   });
 

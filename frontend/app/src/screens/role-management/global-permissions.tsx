@@ -1,29 +1,45 @@
 import { Button } from "@/components/buttons/button-primitive";
-import { Pill } from "@/components/display/pill";
 import SlideOver, { SlideOverTitle } from "@/components/display/slide-over";
 import ObjectForm from "@/components/form/object-form";
 import ModalDeleteObject from "@/components/modals/modal-delete-object";
 import { Table, tRowValue } from "@/components/table/table";
 import { BadgeCopy } from "@/components/ui/badge-copy";
 import { Pagination } from "@/components/ui/pagination";
+import { SearchInput } from "@/components/ui/search-input";
 import { GLOBAL_PERMISSION_OBJECT } from "@/config/constants";
 import graphqlClient from "@/graphql/graphqlClientApollo";
 import { GET_ROLE_MANAGEMENT_GLOBAL_PERMISSIONS } from "@/graphql/queries/role-management/getGlobalPermissions";
+import { useDebounce } from "@/hooks/useDebounce";
 import useQuery from "@/hooks/useQuery";
 import { useSchema } from "@/hooks/useSchema";
 import { schemaKindNameState } from "@/state/atoms/schemaKindName.atom";
-import { Icon } from "@iconify-icon/react";
+import { NetworkStatus } from "@apollo/client";
 import { useAtomValue } from "jotai";
 import { useState } from "react";
 import ErrorScreen from "../errors/error-screen";
 import UnauthorizedScreen from "../errors/unauthorized-screen";
 import LoadingScreen from "../loading-screen/loading-screen";
 import { getPermission } from "../permission/utils";
+import { globalDecisionOptions } from "./constants";
+import { RelationshipDisplay } from "./relationship-display";
 
 function GlobalPermissions() {
   const schemaKindName = useAtomValue(schemaKindNameState);
   const { schema } = useSchema(GLOBAL_PERMISSION_OBJECT);
-  const { loading, data, error, refetch } = useQuery(GET_ROLE_MANAGEMENT_GLOBAL_PERMISSIONS);
+  const [search, setSearch] = useState("");
+  const searchDebounced = useDebounce(search, 300);
+  const {
+    loading,
+    networkStatus,
+    data: latestData,
+    previousData,
+    error,
+    refetch,
+  } = useQuery(GET_ROLE_MANAGEMENT_GLOBAL_PERMISSIONS, {
+    variables: { search: searchDebounced },
+    notifyOnNetworkStatusChange: true,
+  });
+  const data = latestData || previousData;
   const [rowToDelete, setRowToDelete] = useState<Record<
     string,
     string | number | tRowValue
@@ -38,20 +54,20 @@ function GlobalPermissions() {
 
   const columns = [
     {
-      name: "name",
-      label: "Name",
+      name: "identifier",
+      label: "Identifier",
     },
     {
       name: "action",
       label: "Action",
     },
     {
-      name: "roles",
-      label: "Roles",
+      name: "decision",
+      label: "Decision",
     },
     {
-      name: "identifier",
-      label: "Identifier",
+      name: "roles",
+      label: "Roles",
     },
   ];
 
@@ -62,22 +78,19 @@ function GlobalPermissions() {
         values: {
           id: { value: edge?.node?.id },
           display_label: { value: edge?.node?.display_label },
-          name: {
-            display: (
-              <div className="flex items-center gap-2">
-                <Pill className="flex items-center justify-center w-6 h-6 bg-custom-blue-500/20">
-                  <Icon icon={"mdi:lock-outline"} className="text-custom-blue-900" />
-                </Pill>
-
-                {edge?.node?.display_label}
-              </div>
-            ),
-            value: edge?.node?.name?.value,
-          },
           action: { value: edge?.node?.action?.value },
-          decision: { value: edge?.node?.decision?.value },
+          decision: {
+            display: globalDecisionOptions.find(
+              (decision) => decision.value === edge?.node?.decision?.value
+            )?.label,
+            value: edge?.node?.decision?.value,
+          },
           roles: {
-            display: <Pill>{edge?.node?.roles?.count}</Pill>,
+            display: (
+              <RelationshipDisplay
+                items={edge?.node?.roles?.edges?.map((edge) => edge?.node?.display_label)}
+              />
+            ),
             value: { edges: edge?.node?.roles?.edges },
           },
           identifier: { display: <BadgeCopy value={edge?.node?.identifier?.value} /> },
@@ -100,7 +113,7 @@ function GlobalPermissions() {
     return <ErrorScreen message="An error occured while retrieving the accounts." />;
   }
 
-  if (loading) {
+  if (networkStatus === NetworkStatus.loading) {
     return <LoadingScreen message="Retrieving global permissions..." />;
   }
 
@@ -111,18 +124,23 @@ function GlobalPermissions() {
   return (
     <>
       <div>
-        <div className="flex items-center justify-between p-2">
-          <div>{/* Search input + filter button */}</div>
+        <div className="flex items-center justify-between gap-2 p-2 border-b">
+          <SearchInput
+            loading={loading}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search global permissions"
+            className="border-none focus-visible:ring-0"
+            containerClassName="flex-grow"
+          />
 
-          <div>
-            <Button
-              variant={"primary"}
-              onClick={() => setShowDrawer(true)}
-              disabled={!schema || !permission?.create.isAllowed}
-            >
-              Create {schema?.label}
-            </Button>
-          </div>
+          <Button
+            variant={"primary"}
+            onClick={() => setShowDrawer(true)}
+            disabled={!schema || !permission?.create.isAllowed}
+          >
+            Create {schema?.label}
+          </Button>
         </div>
 
         <Table
@@ -160,11 +178,15 @@ function GlobalPermissions() {
           }
           open={showDrawer}
           setOpen={(value) => setShowDrawer(value)}
+          onClose={() => setRowToUpdate(null)}
         >
           <ObjectForm
             kind={GLOBAL_PERMISSION_OBJECT}
             currentObject={rowToUpdate}
-            onCancel={() => setShowDrawer(false)}
+            onCancel={() => {
+              setRowToUpdate(null);
+              setShowDrawer(false);
+            }}
             onSuccess={() => {
               setShowDrawer(false);
               globalRefetch();
