@@ -15,7 +15,6 @@ from .event_worker_newprimaryapi import EventWorkerNewPrimaryAPI
 from .finalize_validator_execution import FinalizeValidatorExecution
 from .git_diff_namesonly import GitDiffNamesOnly, GitDiffNamesOnlyResponse
 from .git_file_get import GitFileGet, GitFileGetResponse
-from .git_repository_add import GitRepositoryAdd
 from .git_repository_connectivity import GitRepositoryConnectivity
 from .git_repository_importobjects import GitRepositoryImportObjects
 from .git_repository_read_only_add import GitRepositoryAddReadOnly
@@ -54,7 +53,6 @@ MESSAGE_MAP: dict[str, type[InfrahubMessage]] = {
     "finalize.validator.execution": FinalizeValidatorExecution,
     "git.diff.names_only": GitDiffNamesOnly,
     "git.file.get": GitFileGet,
-    "git.repository.add": GitRepositoryAdd,
     "git.repository.connectivity": GitRepositoryConnectivity,
     "git.repository.add_read_only": GitRepositoryAddReadOnly,
     "git.repository.import_objects": GitRepositoryImportObjects,

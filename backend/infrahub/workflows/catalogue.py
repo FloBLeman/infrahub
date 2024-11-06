@@ -138,6 +138,15 @@ GIT_REPOSITORIES_CREATE_BRANCH = WorkflowDefinition(
     tags=[WorkflowTag.DATABASE_CHANGE],
 )
 
+GIT_REPOSITORY_ADD = WorkflowDefinition(
+    name="git-repository-add-read-write",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.git.tasks",
+    function="add_git_repository",
+    branch_support=BranchSupportType.AWARE,
+    tags=[WorkflowTag.DATABASE_CHANGE],
+)
+
 GIT_REPOSITORIES_PULL_READ_ONLY = WorkflowDefinition(
     name="git-repository-pull-read-only",
     type=WorkflowType.INTERNAL,
@@ -222,4 +231,5 @@ workflows = [
     BRANCH_CANCEL_PROPOSED_CHANGES,
     REQUEST_GENERATOR_DEFINITION_RUN,
     UPDATE_GRAPHQL_QUERY_GROUP,
+    GIT_REPOSITORY_ADD,
 ]
