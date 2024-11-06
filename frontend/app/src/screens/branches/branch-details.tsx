@@ -8,10 +8,10 @@ import { ALERT_TYPES, Alert } from "@/components/ui/alert";
 import { PROPOSED_CHANGES_OBJECT } from "@/config/constants";
 import { QSP } from "@/config/qsp";
 import graphqlClient from "@/graphql/graphqlClientApollo";
-import { deleteBranch } from "@/graphql/mutations/branches/deleteBranch";
-import { mergeBranch } from "@/graphql/mutations/branches/mergeBranch";
-import { rebaseBranch } from "@/graphql/mutations/branches/rebaseBranch";
-import { validateBranch } from "@/graphql/mutations/branches/validateBranch";
+import { BRANCH_DELETE } from "@/graphql/mutations/branches/deleteBranch";
+import { BRANCH_MERGE } from "@/graphql/mutations/branches/mergeBranch";
+import { BRANCH_REBASE } from "@/graphql/mutations/branches/rebaseBranch";
+import { BRANCH_VALIDATE } from "@/graphql/mutations/branches/validateBranch";
 import { getBranchDetailsQuery } from "@/graphql/queries/branches/getBranchDetails";
 import { useAuth } from "@/hooks/useAuth";
 import useQuery from "@/hooks/useQuery";
@@ -20,9 +20,7 @@ import NoDataFound from "@/screens/errors/no-data-found";
 import LoadingScreen from "@/screens/loading-screen/loading-screen";
 import { branchesState } from "@/state/atoms/branches.atom";
 import { datetimeAtom } from "@/state/atoms/time.atom";
-import { objectToString } from "@/utils/common";
 import { constructPath, getCurrentQsp } from "@/utils/fetch";
-import { gql } from "@apollo/client";
 import { CheckIcon, ShieldCheckIcon } from "@heroicons/react/20/solid";
 import { ArrowPathIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { Icon } from "@iconify-icon/react";
@@ -31,6 +29,7 @@ import { useAtomValue } from "jotai/index";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
+import { TaskLoader } from "./task-loader";
 
 export const BranchDetails = () => {
   const { "*": branchName } = useParams();
@@ -40,39 +39,37 @@ export const BranchDetails = () => {
 
   const [isLoadingRequest, setIsLoadingRequest] = useState(false);
   const [displayModal, setDisplayModal] = useState(false);
-  const [detailsContent, setDetailsContent] = useState({});
+  const [taskId, setTaskId] = useState("");
   const [showCreateDrawer, setShowCreateDrawer] = useState(false);
 
   const navigate = useNavigate();
 
-  const branchAction = async ({ successMessage, errorMessage, request, options }: any) => {
+  const branchAction = async ({ successMessage, errorMessage, mutation }: any) => {
     if (!branchName) return;
 
     try {
       setIsLoadingRequest(true);
 
-      const mutationString = request({ data: objectToString(options) });
-
-      const mutation = gql`
-        ${mutationString}
-      `;
-
       const result = await graphqlClient.mutate({
         mutation,
+        variables: {
+          name: branch.name,
+        },
         context: {
           branch: branchName,
           date,
         },
       });
 
-      setDetailsContent(result);
+      const mutationName = mutation.definitions[0].selectionSet.selections[0].name.value;
+
+      setTaskId(result.data[mutationName].task.id);
 
       toast(<Alert type={ALERT_TYPES.SUCCESS} message={successMessage} />, {
         toastId: "alert-success",
       });
     } catch (error: any) {
-      setDetailsContent(error);
-
+      console.error("error: ", error);
       toast(<Alert type={ALERT_TYPES.SUCCESS} message={errorMessage} />);
     }
 
@@ -113,10 +110,7 @@ export const BranchDetails = () => {
             await branchAction({
               successMessage: "Branch deleted successfully!",
               errorMessage: "An error occurred while deleting the branch",
-              request: deleteBranch,
-              options: {
-                name: branch.name,
-              },
+              mutation: BRANCH_DELETE,
             });
 
             const queryStringParams = getCurrentQsp();
@@ -178,10 +172,7 @@ export const BranchDetails = () => {
                     branchAction({
                       successMessage: "Branch merged successfully!",
                       errorMessage: "An error occurred while merging the branch",
-                      request: mergeBranch,
-                      options: {
-                        name: branch.name,
-                      },
+                      mutation: BRANCH_MERGE,
                     })
                   }
                   buttonType={BUTTON_TYPES.VALIDATE}
@@ -206,10 +197,7 @@ export const BranchDetails = () => {
                     branchAction({
                       successMessage: "Branch rebased successfully!",
                       errorMessage: "An error occurred while rebasing the branch",
-                      request: rebaseBranch,
-                      options: {
-                        name: branch.name,
-                      },
+                      mutation: BRANCH_REBASE,
                     })
                   }
                 >
@@ -224,10 +212,7 @@ export const BranchDetails = () => {
                     branchAction({
                       successMessage: "The branch is valid!",
                       errorMessage: "An error occurred while validating the branch",
-                      request: validateBranch,
-                      options: {
-                        name: branch.name,
-                      },
+                      mutation: BRANCH_VALIDATE,
                     })
                   }
                   buttonType={BUTTON_TYPES.WARNING}
@@ -250,17 +235,9 @@ export const BranchDetails = () => {
           )}
         </div>
 
-        {isLoadingRequest && (
-          <div className="">
-            <LoadingScreen />
-          </div>
-        )}
+        {isLoadingRequest && <LoadingScreen />}
 
-        {detailsContent && !isLoadingRequest && (
-          <div className="">
-            <pre>{JSON.stringify(detailsContent, null, 2)}</pre>
-          </div>
-        )}
+        {taskId && !isLoadingRequest && <TaskLoader id={taskId} />}
       </div>
 
       <SlideOver
