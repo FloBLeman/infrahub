@@ -4,7 +4,9 @@ import { DateDisplay } from "@/components/display/date-display";
 import SlideOver from "@/components/display/slide-over";
 import ObjectForm from "@/components/form/object-form";
 import ModalDelete from "@/components/modals/modal-delete";
+import { List } from "@/components/table/list";
 import { ALERT_TYPES, Alert } from "@/components/ui/alert";
+import { Card } from "@/components/ui/card";
 import { PROPOSED_CHANGES_OBJECT } from "@/config/constants";
 import { QSP } from "@/config/qsp";
 import graphqlClient from "@/graphql/graphqlClientApollo";
@@ -94,74 +96,40 @@ export const BranchDetails = () => {
 
   const branch = branchData[0];
 
+  const columns = [
+    {
+      name: "name",
+      label: "ID",
+    },
+    {
+      name: "origin_branch",
+      label: "Name",
+    },
+    {
+      name: "branched_at",
+      label: "Started at",
+    },
+    {
+      name: "created_at",
+      label: "Completed at",
+    },
+  ];
+
+  const row = {
+    values: {
+      name: branch.name,
+      origin_branch: <Badge className="text-sm">{branch.origin_branch}</Badge>,
+      branched_at: <DateDisplay date={branch.branched_at} />,
+      created_at: <DateDisplay date={branch.created_at} />,
+    },
+  };
+
   return (
-    <div className="bg-custom-white">
-      {displayModal && (
-        <ModalDelete
-          title="Delete"
-          description={
-            <>
-              Are you sure you want to remove the branch
-              <br /> <b>`{branch?.name}`</b>?
-            </>
-          }
-          onCancel={() => setDisplayModal(false)}
-          onDelete={async () => {
-            await branchAction({
-              successMessage: "Branch deleted successfully!",
-              errorMessage: "An error occurred while deleting the branch",
-              mutation: BRANCH_DELETE,
-            });
+    <div className="flex flex-col gap-4">
+      <List columns={columns} row={row} />
 
-            const queryStringParams = getCurrentQsp();
-            const isDeletedBranchSelected = queryStringParams.get(QSP.BRANCH) === branch.name;
-
-            const path = isDeletedBranchSelected
-              ? constructPath("/branches", [{ name: QSP.BRANCH, exclude: true }])
-              : constructPath("/branches");
-
-            navigate(path);
-            const nextBranches = branches.filter(({ name }) => name !== branch.name);
-            setBranches(nextBranches);
-          }}
-          open={displayModal}
-          setOpen={() => setDisplayModal(false)}
-        />
-      )}
-
-      {!loading && branch?.name && (
-        <>
-          <div className="border-t border-b border-gray-200 px-2 py-2">
-            <dl className="divide-y divide-gray-200">
-              <div className="p-2 grid grid-cols-3 gap-4 text-xs">
-                <dt className="text-sm font-medium text-gray-500">Name</dt>
-                <dd className="flex text-gray-900">{branch.name}</dd>
-              </div>
-              <div className="p-2 grid grid-cols-3 gap-4 text-xs">
-                <dt className="text-sm font-medium text-gray-500">Origin branch</dt>
-                <dd className="flex text-gray-900">
-                  <Badge className="text-sm">{branch.origin_branch}</Badge>
-                </dd>
-              </div>
-              <div className="p-2 grid grid-cols-3 gap-4 text-xs">
-                <dt className="text-sm font-medium text-gray-500">Branched</dt>
-                <dd className="flex text-gray-900">
-                  <DateDisplay date={branch.branched_at} />
-                </dd>
-              </div>
-              <div className="p-2 grid grid-cols-3 gap-4 text-xs">
-                <dt className="text-sm font-medium text-gray-500">Created</dt>
-                <dd className="flex text-gray-900">
-                  <DateDisplay date={branch.created_at} />
-                </dd>
-              </div>
-            </dl>
-          </div>
-        </>
-      )}
-
-      <div className="p-6">
-        <div className="mb-6">
+      <div className="">
+        <div className="mb-4">
           {branch?.name && (
             <>
               <div className="flex flex-1 flex-col md:flex-row">
@@ -237,7 +205,11 @@ export const BranchDetails = () => {
 
         {isLoadingRequest && <LoadingScreen />}
 
-        {taskId && !isLoadingRequest && <TaskItemDetails id={taskId} pollInterval={1000} />}
+        {taskId && !isLoadingRequest && (
+          <Card>
+            <TaskItemDetails id={taskId} pollInterval={1000} />
+          </Card>
+        )}
       </div>
 
       <SlideOver
@@ -272,6 +244,39 @@ export const BranchDetails = () => {
           onCancel={() => setShowCreateDrawer(false)}
         />
       </SlideOver>
+
+      {displayModal && (
+        <ModalDelete
+          title="Delete"
+          description={
+            <>
+              Are you sure you want to remove the branch
+              <br /> <b>`{branch?.name}`</b>?
+            </>
+          }
+          onCancel={() => setDisplayModal(false)}
+          onDelete={async () => {
+            await branchAction({
+              successMessage: "Branch deleted successfully!",
+              errorMessage: "An error occurred while deleting the branch",
+              mutation: BRANCH_DELETE,
+            });
+
+            const queryStringParams = getCurrentQsp();
+            const isDeletedBranchSelected = queryStringParams.get(QSP.BRANCH) === branch.name;
+
+            const path = isDeletedBranchSelected
+              ? constructPath("/branches", [{ name: QSP.BRANCH, exclude: true }])
+              : constructPath("/branches");
+
+            navigate(path);
+            const nextBranches = branches.filter(({ name }) => name !== branch.name);
+            setBranches(nextBranches);
+          }}
+          open={displayModal}
+          setOpen={() => setDisplayModal(false)}
+        />
+      )}
     </div>
   );
 };
