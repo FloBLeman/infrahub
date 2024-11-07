@@ -30,7 +30,6 @@ export function TaskStatus() {
       <ButtonWithTooltip
         size="square"
         variant="ghost"
-        // className="h-8 w-8 rounded-lg relative"
         className="h-8 w-8 bg-neutral-50 border border-neutral-200 rounded-lg relative"
         tooltipEnabled
         tooltipContent={
@@ -41,8 +40,7 @@ export function TaskStatus() {
 
         {!loading && <TasksStatusIcon />}
 
-        {/* {!loading && count > 0 && <Pulse className="right-[6.5px] bottom-[6.5px]" />} */}
-        {!loading && <Pulse className="right-[6.5px] bottom-[6.5px]" />}
+        {!loading && count > 0 && <Pulse className="right-[6.5px] bottom-[6.5px]" />}
       </ButtonWithTooltip>
     </Link>
   );
