@@ -41,7 +41,7 @@ async def add_read_only(message: messages.GitRepositoryAddReadOnly, service: Inf
                 await repo.sync_from_remote()
 
                 # Notify other workers they need to clone the repository
-                notification = messages.GitRepositoryClone(
+                notification = messages.RefreshGitClone(
                     meta=Meta(initiator_id=WORKER_IDENTITY, request_id=get_log_data().get("request_id", "")),
                     location=message.location,
                     repository_id=message.repository_id,
