@@ -196,6 +196,13 @@ BRANCH_CANCEL_PROPOSED_CHANGES = WorkflowDefinition(
     function="cancel_proposed_changes_branch",
 )
 
+PROPOSED_CHANGE_MERGE = WorkflowDefinition(
+    name="proposed-change-merge",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.proposed_change.tasks",
+    function="merge_proposed_change",
+)
+
 UPDATE_GRAPHQL_QUERY_GROUP = WorkflowDefinition(
     name="update_graphql_query_group",
     type=WorkflowType.INTERNAL,
@@ -229,6 +236,7 @@ workflows = [
     GIT_REPOSITORIES_MERGE,
     TRIGGER_GENERATOR_DEFINITION_RUN,
     BRANCH_CANCEL_PROPOSED_CHANGES,
+    PROPOSED_CHANGE_MERGE,
     REQUEST_GENERATOR_DEFINITION_RUN,
     UPDATE_GRAPHQL_QUERY_GROUP,
     GIT_REPOSITORY_ADD,
