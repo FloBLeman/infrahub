@@ -189,6 +189,14 @@ BRANCH_DELETE = WorkflowDefinition(
     branch_support=BranchSupportType.AWARE,
 )
 
+BRANCH_VALIDATE = WorkflowDefinition(
+    name="branch-validate",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.core.branch.tasks",
+    function="validate_branch",
+    branch_support=BranchSupportType.AWARE,
+)
+
 BRANCH_CANCEL_PROPOSED_CHANGES = WorkflowDefinition(
     name="proposed-changes-cancel-branch",
     type=WorkflowType.INTERNAL,
@@ -221,6 +229,7 @@ workflows = [
     BRANCH_REBASE,
     BRANCH_MERGE,
     BRANCH_DELETE,
+    BRANCH_VALIDATE,
     REQUEST_ARTIFACT_DEFINITION_GENERATE,
     REQUEST_GENERATOR_RUN,
     REQUEST_DIFF_UPDATE,
