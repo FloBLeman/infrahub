@@ -41,7 +41,6 @@ COMMAND_MAP = {
     "refresh.webhook.configuration": refresh.webhook.configuration,
     "request.generator_definition.check": requests.generator_definition.check,
     "request.artifact_definition.check": requests.artifact_definition.check,
-    "request.proposed_change.data_integrity": requests.proposed_change.data_integrity,
     "request.proposed_change.pipeline": requests.proposed_change.pipeline,
     "request.proposed_change.refresh_artifacts": requests.proposed_change.refresh_artifacts,
     "request.proposed_change.repository_checks": requests.proposed_change.repository_checks,

@@ -242,6 +242,13 @@ UPDATE_COMPUTED_ATTRIBUTE_TRANSFORM = WorkflowDefinition(
     function="process_transform",
 )
 
+REQUEST_PROPOSED_CHANGE_DATA_INTEGRITY = WorkflowDefinition(
+    name="proposed-changed-data-integrity",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.proposed_change.tasks",
+    function="run_proposed_change_data_integrity_check",
+)
+
 
 worker_pools = [INFRAHUB_WORKER_POOL]
 
