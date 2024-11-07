@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 import pydantic
-from graphene import Boolean, Field, InputField, InputObjectType, Mutation, ObjectType, String
+from graphene import Boolean, Field, InputField, InputObjectType, Mutation, String
 from infrahub_sdk.utils import extract_fields, extract_fields_first_node
 from opentelemetry import trace
 from typing_extensions import Self
@@ -25,6 +25,7 @@ from infrahub.workflows.catalogue import (
 )
 
 from ..types import BranchType
+from ..types.task import TaskInfo
 
 if TYPE_CHECKING:
     from graphql import GraphQLResolveInfo
@@ -35,10 +36,6 @@ if TYPE_CHECKING:
 # pylint: disable=unused-argument
 
 log = get_logger()
-
-
-class TaskInfo(ObjectType):
-    id = Field(String)
 
 
 class BranchCreateInput(InputObjectType):
