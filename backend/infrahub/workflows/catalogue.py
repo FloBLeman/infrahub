@@ -142,7 +142,6 @@ GIT_REPOSITORY_ADD_READ_ONLY = WorkflowDefinition(
     type=WorkflowType.INTERNAL,
     module="infrahub.git.tasks",
     function="add_git_repository_read_only",
-    branch_support=BranchSupportType.AWARE,
     tags=[WorkflowTag.DATABASE_CHANGE],
 )
 
@@ -267,4 +266,5 @@ workflows = [
     PROCESS_COMPUTED_MACRO,
     COMPUTED_ATTRIBUTE_SETUP,
     UPDATE_COMPUTED_ATTRIBUTE_TRANSFORM,
+    REQUEST_PROPOSED_CHANGE_DATA_INTEGRITY,
 ]
