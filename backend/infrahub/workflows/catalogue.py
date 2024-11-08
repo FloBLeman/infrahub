@@ -176,6 +176,14 @@ BRANCH_MERGE = WorkflowDefinition(
     tags=[WorkflowTag.DATABASE_CHANGE],
 )
 
+BRANCH_MERGE_MUTATION = WorkflowDefinition(
+    name="merge-branch-mutation",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.graphql.mutations.tasks",
+    function="merge_branch_mutation",
+    tags=[WorkflowTag.DATABASE_CHANGE],
+)
+
 BRANCH_DELETE = WorkflowDefinition(
     name="branch-delete",
     type=WorkflowType.INTERNAL,
@@ -251,6 +259,7 @@ workflows = [
     BRANCH_MERGE,
     BRANCH_DELETE,
     BRANCH_VALIDATE,
+    BRANCH_MERGE_MUTATION,
     REQUEST_ARTIFACT_DEFINITION_GENERATE,
     REQUEST_GENERATOR_RUN,
     REQUEST_DIFF_UPDATE,
