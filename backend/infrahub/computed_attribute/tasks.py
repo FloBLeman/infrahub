@@ -118,13 +118,22 @@ async def process_transform(
 
 @flow(name="process_computed_attribute_jinja2", log_prints=True)
 async def process_jinja2(
-    branch_name: str, node_kind: str, object_id: str, updated_fields: list[str] | None = None
+    branch_name: str,
+    node_kind: str,
+    object_id: str,
+    computed_attribute_name: str,
+    computed_attribute_kind: str,
+    updated_fields: list[str] | None = None,
 ) -> None:
     """Request to the creation of git branches in available repositories."""
     service = services.service
     schema_branch = registry.schema.get_schema_branch(name=branch_name)
 
-    computed_macros = schema_branch.get_impacted_macros(kind=node_kind, updates=updated_fields)
+    computed_macros = [
+        attrib
+        for attrib in schema_branch.get_impacted_macros(kind=node_kind, updates=updated_fields)
+        if attrib.kind == computed_attribute_kind and attrib.attribute.name == computed_attribute_name
+    ]
     for computed_macro in computed_macros:
         found = []
         for id_filter in computed_macro.node_filters:
@@ -238,6 +247,8 @@ async def computed_attribute_setup() -> None:
                             "branch_name": "{{ event.resource['infrahub.branch.name'] }}",
                             "node_kind": "{{ event.resource['infrahub.node.kind'] }}",
                             "object_id": "{{ event.resource['infrahub.node.id'] }}",
+                            "computed_attribute_name": computed_attribute.attribute.name,
+                            "computed_attribute_kind": computed_attribute.kind,
                         },
                         job_variables={},
                     )
