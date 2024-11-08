@@ -17,7 +17,6 @@ from .git_diff_namesonly import GitDiffNamesOnly, GitDiffNamesOnlyResponse
 from .git_file_get import GitFileGet, GitFileGetResponse
 from .git_repository_connectivity import GitRepositoryConnectivity
 from .git_repository_importobjects import GitRepositoryImportObjects
-from .proposed_change.request_proposedchange_dataintegrity import RequestProposedChangeDataIntegrity
 from .proposed_change.request_proposedchange_refreshartifacts import RequestProposedChangeRefreshArtifacts
 from .proposed_change.request_proposedchange_repositorychecks import RequestProposedChangeRepositoryChecks
 from .proposed_change.request_proposedchange_rungenerators import RequestProposedChangeRunGenerators
@@ -61,7 +60,6 @@ MESSAGE_MAP: dict[str, type[InfrahubMessage]] = {
     "refresh.webhook.configuration": RefreshWebhookConfiguration,
     "request.artifact_definition.check": RequestArtifactDefinitionCheck,
     "request.generator_definition.check": RequestGeneratorDefinitionCheck,
-    "request.proposed_change.data_integrity": RequestProposedChangeDataIntegrity,
     "request.proposed_change.pipeline": RequestProposedChangePipeline,
     "request.proposed_change.refresh_artifacts": RequestProposedChangeRefreshArtifacts,
     "request.proposed_change.repository_checks": RequestProposedChangeRepositoryChecks,
