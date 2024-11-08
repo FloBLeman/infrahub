@@ -3,9 +3,7 @@ from infrahub.core.constants import BranchSupportType
 from .constants import WorkflowTag, WorkflowType
 from .models import WorkerPoolDefinition, WorkflowDefinition
 
-INFRAHUB_WORKER_POOL = WorkerPoolDefinition(
-    name="infrahub-worker", worker_type="infrahubasync", description="Default Pool for internal tasks"
-)
+INFRAHUB_WORKER_POOL = WorkerPoolDefinition(name="infrahub-worker", description="Default Pool for internal tasks")
 
 WEBHOOK_SEND = WorkflowDefinition(
     name="event-send-webhook",

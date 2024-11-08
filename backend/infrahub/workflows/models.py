@@ -21,7 +21,7 @@ WorkflowReturn = TypeVar("WorkflowReturn")
 
 class WorkerPoolDefinition(BaseModel):
     name: str
-    worker_type: str
+    worker_type: str | None = None
     description: str = ""
 
 

@@ -290,6 +290,7 @@ class WorkflowSettings(BaseSettings):
     port: Optional[int] = Field(default=None, ge=1, le=65535, description="Specified if running on a non default port.")
     tls_enabled: bool = Field(default=False, description="Indicates if TLS is enabled for the connection")
     driver: WorkflowDriver = WorkflowDriver.WORKER
+    default_worker_type: str = "infrahubasync"
     worker_polling_interval: int = Field(
         default=2, ge=1, le=30, description="Specify how often the worker should poll the server for tasks (sec)"
     )
