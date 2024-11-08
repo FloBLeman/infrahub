@@ -1,23 +1,17 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
-import pydantic
 from graphene import Boolean, Field, InputField, InputObjectType, Mutation, String
 from infrahub_sdk.utils import extract_fields, extract_fields_first_node
 from opentelemetry import trace
 from typing_extensions import Self
 
-from infrahub import lock
-from infrahub.core import registry
 from infrahub.core.branch import Branch
-from infrahub.core.task import UserTask
 from infrahub.database import retry_db_transaction
-from infrahub.exceptions import BranchNotFoundError
-from infrahub.log import get_log_data, get_logger
-from infrahub.message_bus import Meta, messages
-from infrahub.worker import WORKER_IDENTITY
+from infrahub.log import get_logger
 from infrahub.workflows.catalogue import (
+    BRANCH_CREATE,
     BRANCH_DELETE,
     BRANCH_MERGE_MUTATION,
     BRANCH_REBASE,
@@ -51,10 +45,13 @@ class BranchCreateInput(InputObjectType):
 class BranchCreate(Mutation):
     class Arguments:
         data = BranchCreateInput(required=True)
+        # TODO: We might want to change `background_execution` to `wait_until_completion` to keep consistent
+        #  with other mutations. It would be a breaking change though.
         background_execution = Boolean(required=False)
 
     ok = Boolean()
     object = Field(BranchType)
+    task = Field(TaskInfo, required=False)
 
     @classmethod
     @retry_db_transaction(name="branch_create")
@@ -63,54 +60,22 @@ class BranchCreate(Mutation):
         cls, root: dict, info: GraphQLResolveInfo, data: BranchCreateInput, background_execution: bool = False
     ) -> Self:
         context: GraphqlContext = info.context
+        task: dict | None = None
 
-        async with UserTask.from_graphql_context(title=f"Create branch : {data['name']}", context=context) as task:
-            # Check if the branch already exist
-            try:
-                await Branch.get_by_name(db=context.db, name=data["name"])
-                raise ValueError(f"The branch {data['name']}, already exist")
-            except BranchNotFoundError:
-                pass
+        if background_execution:
+            workflow = await context.active_service.workflow.submit_workflow(
+                workflow=BRANCH_CREATE, parameters={"data": data}
+            )
+            task = {"id": workflow.id}
+        else:
+            await context.active_service.workflow.execute_workflow(workflow=BRANCH_CREATE, parameters={"data": data})
 
-            data_dict: dict[str, Any] = dict(data)
-            if "is_isolated" in data_dict:
-                del data_dict["is_isolated"]
+        # Retrieve created branch
+        obj = await Branch.get_by_name(db=context.db, name=data["name"])
+        ok = True
+        fields = await extract_fields(info.field_nodes[0].selection_set)
 
-            try:
-                obj = Branch(**data_dict)
-            except pydantic.ValidationError as exc:
-                error_msgs = [f"invalid field {error['loc'][0]}: {error['msg']}" for error in exc.errors()]
-                raise ValueError("\n".join(error_msgs)) from exc
-
-            async with lock.registry.local_schema_lock():
-                # Copy the schema from the origin branch and set the hash and the schema_changed_at value
-                origin_schema = registry.schema.get_schema_branch(name=obj.origin_branch)
-                new_schema = origin_schema.duplicate(name=obj.name)
-                registry.schema.set_schema_branch(name=obj.name, schema=new_schema)
-                obj.update_schema_hash()
-                await obj.save(db=context.db)
-
-                # Add Branch to registry
-                registry.branch[obj.name] = obj
-
-            await task.info(message="created_branch", name=obj.name)
-
-            log_data = get_log_data()
-            request_id = log_data.get("request_id", "")
-
-            ok = True
-
-            fields = await extract_fields(info.field_nodes[0].selection_set)
-            if context.service:
-                message = messages.EventBranchCreate(
-                    branch=obj.name,
-                    branch_id=str(obj.id),
-                    sync_with_git=obj.sync_with_git,
-                    meta=Meta(initiator_id=WORKER_IDENTITY, request_id=request_id),
-                )
-                await context.service.send(message=message)
-
-            return cls(object=await obj.to_graphql(fields=fields.get("object", {})), ok=ok)
+        return cls(object=await obj.to_graphql(fields=fields.get("object", {})), ok=ok, task=task)
 
 
 class BranchNameInput(InputObjectType):
