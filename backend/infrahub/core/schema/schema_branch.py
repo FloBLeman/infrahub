@@ -1561,6 +1561,7 @@ class SchemaBranch:
             include_in_menu=False,
             display_labels=["profile_name__value"],
             inherit_from=[InfrahubKind.LINEAGESOURCE, InfrahubKind.PROFILE, InfrahubKind.NODE],
+            human_friendly_id=["profile_name__value"],
             default_filter="profile_name__value",
             attributes=[profile_name_attr, profile_priority_attr],
             relationships=[
