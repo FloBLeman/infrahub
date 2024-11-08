@@ -66,8 +66,8 @@ authlib = "1.3.2"
 rich = "^13"
 pyarrow = "^14"
 numpy = [
-    { version = "^1.24.2", optional = true, python = ">=3.9,<3.12" },
-    { version = "^1.26.2", optional = true, python = ">=3.12" },
+    { version = "^1.24.2", python = ">=3.9,<3.12" },
+    { version = "^1.26.2", python = ">=3.12" },
 ]
 
 
