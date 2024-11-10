@@ -32,6 +32,7 @@ log = get_logger()
 async def add_git_repository(model: GitRepositoryAdd) -> None:
     service = services.service
     await add_branch_tag(model.infrahub_branch_name)
+
     async with service.git_report(
         related_node=model.repository_id,
         title=f"Initial import of the repository in branch: {model.infrahub_branch_name}",
@@ -183,9 +184,11 @@ async def git_branch_create(
         await repo.create_branch_in_git(branch_name=branch, branch_id=branch_id)
 
 
-@flow(name="artifact-definition-generate")
+@flow(name="artifact-definition-generate", flow_run_name="Generate all artifacts")
 async def generate_artifact_definition(branch: str) -> None:
     service = services.service
+    await add_branch_tag(branch_name=branch)
+
     artifact_definitions = await service.client.all(kind=InfrahubKind.ARTIFACTDEFINITION, branch=branch, include=["id"])
 
     for artifact_definition in artifact_definitions:
@@ -195,11 +198,11 @@ async def generate_artifact_definition(branch: str) -> None:
         )
 
 
-@flow(name="artifact-generate")
+@flow(name="artifact-generate", flow_run_name="Generate artifact {model.artifact_name}")
 async def generate_artifact(model: RequestArtifactGenerate) -> None:
-    log.debug("Generating artifact", message=model)
-
     service = services.service
+
+    await add_branch_tag(branch_name=model.branch_name)
 
     repo = await get_initialized_repo(
         repository_id=model.repository_id,
@@ -226,11 +229,11 @@ async def generate_artifact(model: RequestArtifactGenerate) -> None:
         await artifact.save()
 
 
-@flow(name="request_artifact_definitions_generate")
+@flow(name="request_artifact_definitions_generate", flow_run_name="Generate artifacts")
 async def generate_request_artifact_definition(model: RequestArtifactDefinitionGenerate) -> None:
+    service = services.service
     await add_branch_tag(branch_name=model.branch)
 
-    service = services.service
     artifact_definition = await service.client.get(
         kind=InfrahubKind.ARTIFACTDEFINITION, id=model.artifact_definition, branch=model.branch
     )
@@ -300,7 +303,7 @@ async def generate_request_artifact_definition(model: RequestArtifactDefinitionG
         )
 
 
-@flow(name="git-repository-pull-read-only")
+@flow(name="git-repository-pull-read-only", flow_run_name="Pull latest commit on {model.repository_name}")
 async def pull_read_only(model: GitRepositoryPullReadOnly) -> None:
     service = services.service
     if not model.ref and not model.commit:
@@ -344,13 +347,8 @@ async def pull_read_only(model: GitRepositoryPullReadOnly) -> None:
 @flow(name="git-repository-merge")
 async def merge_git_repository(model: GitRepositoryMerge) -> None:
     service = services.service
-    log.info(
-        "Merging repository branch",
-        repository_name=model.repository_name,
-        repository_id=model.repository_id,
-        source_branch=model.source_branch,
-        destination_branch=model.destination_branch,
-    )
+    await add_branch_tag(branch_name=model.source_branch)
+    await add_branch_tag(branch_name=model.destination_branch)
 
     repo = await InfrahubRepository.init(
         id=model.repository_id,

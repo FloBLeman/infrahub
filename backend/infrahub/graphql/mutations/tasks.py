@@ -23,7 +23,7 @@ async def merge_branch_mutation(branch: str) -> None:
     service = services.service
     db = service.database
 
-    await add_branch_tag(branch)
+    await add_branch_tag(branch_name=branch)
 
     obj = await Branch.get_by_name(db=db, name=branch)
     base_branch = await Branch.get_by_name(db=db, name=registry.default_branch)
