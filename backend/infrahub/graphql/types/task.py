@@ -19,6 +19,7 @@ class Task(ObjectType):
     conclusion = String(required=True)
     state = TaskState(required=False)
     progress = Float(required=False)
+    workflow = String(required=False)
     branch = String(required=False)
     created_at = String(required=True)
     updated_at = String(required=True)
