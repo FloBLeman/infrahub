@@ -231,14 +231,3 @@ class TestBranchMutations(TestInfrahubApp):
         assert result["BranchCreate"]["ok"] is True
         assert result["BranchCreate"]["object"]["id"] is not None
         assert result["BranchCreate"]["task"] is None
-
-    async def test_branch_create_async(self, initial_dataset: str, client: InfrahubClient) -> None:
-        query = Mutation(
-            mutation="BranchCreate",
-            input_data={"data": {"name": "branch-3"}, "background_execution": True},
-            query={"ok": None, "task": {"id": None}, "object": {"id": None}},
-        )
-        result = await client.execute_graphql(query=query.render())
-        assert result["BranchCreate"]["ok"] is True
-        assert result["BranchCreate"]["object"]["id"] is not None
-        assert result["BranchCreate"]["task"] is not None

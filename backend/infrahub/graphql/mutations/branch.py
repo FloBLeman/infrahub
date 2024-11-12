@@ -62,13 +62,9 @@ class BranchCreate(Mutation):
         context: GraphqlContext = info.context
         task: dict | None = None
 
-        if background_execution:
-            workflow = await context.active_service.workflow.submit_workflow(
-                workflow=BRANCH_CREATE, parameters={"data": data}
-            )
-            task = {"id": workflow.id}
-        else:
-            await context.active_service.workflow.execute_workflow(workflow=BRANCH_CREATE, parameters={"data": data})
+        await context.active_service.workflow.execute_workflow(
+            workflow=BRANCH_CREATE, parameters={"branch_name": data.name, "data": dict(data)}
+        )
 
         # Retrieve created branch
         obj = await Branch.get_by_name(db=context.db, name=data["name"])
