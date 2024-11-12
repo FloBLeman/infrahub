@@ -247,6 +247,13 @@ REQUEST_PROPOSED_CHANGE_DATA_INTEGRITY = WorkflowDefinition(
     function="run_proposed_change_data_integrity_check",
 )
 
+SCHEMA_UPDATED_SETUP = WorkflowDefinition(
+    name="schema-updated-setup",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.schema.tasks",
+    function="schema_updated_setup",
+)
+
 
 worker_pools = [INFRAHUB_WORKER_POOL]
 
@@ -284,4 +291,5 @@ workflows = [
     COMPUTED_ATTRIBUTE_SETUP,
     UPDATE_COMPUTED_ATTRIBUTE_TRANSFORM,
     REQUEST_PROPOSED_CHANGE_DATA_INTEGRITY,
+    SCHEMA_UPDATED_SETUP,
 ]
