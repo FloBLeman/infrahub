@@ -10,7 +10,7 @@ from prefect.events.actions import RunDeployment
 from prefect.events.schemas.automations import EventTrigger, Posture
 from prefect.logging import get_run_logger
 
-from infrahub.workflows.catalogue import COMPUTED_ATTRIBUTE_SETUP
+from infrahub.workflows.catalogue import COMPUTED_ATTRIBUTE_SETUP, COMPUTED_ATTRIBUTE_SETUP_PYTHON
 
 from .constants import AUTOMATION_NAME
 
@@ -25,9 +25,7 @@ async def schema_updated_setup() -> None:
             for item in await client.read_deployments(
                 deployment_filter=DeploymentFilter(
                     name=DeploymentFilterName(
-                        any_=[
-                            COMPUTED_ATTRIBUTE_SETUP.name,
-                        ]
+                        any_=[COMPUTED_ATTRIBUTE_SETUP.name, COMPUTED_ATTRIBUTE_SETUP_PYTHON.name]
                     )
                 )
             )
@@ -36,6 +34,7 @@ async def schema_updated_setup() -> None:
             raise ValueError("Unable to find the deployment for PROCESS_COMPUTED_MACRO")
 
         deployment_id_computed_attribute_setup = deployments[COMPUTED_ATTRIBUTE_SETUP.name].id
+        deployment_id_computed_attribute_setup_python = deployments[COMPUTED_ATTRIBUTE_SETUP_PYTHON.name].id
 
         schema_update_automation = await client.find_automation(id_or_name=AUTOMATION_NAME)
 
@@ -55,7 +54,13 @@ async def schema_updated_setup() -> None:
                     deployment_id=deployment_id_computed_attribute_setup,
                     parameters={},
                     job_variables={},
-                )
+                ),
+                RunDeployment(
+                    source="selected",
+                    deployment_id=deployment_id_computed_attribute_setup_python,
+                    parameters={},
+                    job_variables={},
+                ),
             ],
         )
 
