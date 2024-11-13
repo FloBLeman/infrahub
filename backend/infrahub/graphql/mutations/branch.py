@@ -20,6 +20,7 @@ from infrahub.workflows.catalogue import (
 
 from ..types import BranchType
 from ..types.task import TaskInfo
+from .models import BranchCreateModel
 
 if TYPE_CHECKING:
     from graphql import GraphQLResolveInfo
@@ -62,12 +63,12 @@ class BranchCreate(Mutation):
         context: GraphqlContext = info.context
         task: dict | None = None
 
-        await context.active_service.workflow.execute_workflow(
-            workflow=BRANCH_CREATE, parameters={"branch_name": data.name, "data": dict(data)}
-        )
+        model = BranchCreateModel(**data)
+
+        await context.active_service.workflow.execute_workflow(workflow=BRANCH_CREATE, parameters={"model": model})
 
         # Retrieve created branch
-        obj = await Branch.get_by_name(db=context.db, name=data["name"])
+        obj = await Branch.get_by_name(db=context.db, name=model.name)
         ok = True
         fields = await extract_fields(info.field_nodes[0].selection_set)
 

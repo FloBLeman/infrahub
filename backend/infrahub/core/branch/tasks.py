@@ -24,6 +24,7 @@ from infrahub.core.validators.tasks import schema_validate_migrations
 from infrahub.dependencies.registry import get_component_registry
 from infrahub.events.branch_action import BranchDeleteEvent
 from infrahub.exceptions import BranchNotFoundError, MergeFailedError, ValidationError
+from infrahub.graphql.mutations.models import BranchCreateModel  # noqa: TCH001
 from infrahub.log import get_log_data
 from infrahub.message_bus import Meta, messages
 from infrahub.services import services
@@ -253,24 +254,19 @@ async def validate_branch(branch: str) -> State:
     return Completed(message="branch is valid")
 
 
-# Note 1: We could use a `data` BaseModel instead of a dict here (as it's done for other flows),
-# but it would require duplicating `BranchCreateInput` class definition. The initial issue is that
-# using `BranchCreateInput` input type raises "Input should be an instance of BranchCreateInput" in production worker.
-# Note 2: `data` also contains a `name` attribute, but it cannot be used within flow_run_name
-# as dict keys seem to be resolved before dict is deserialized.
-@flow(name="create-branch", flow_run_name="Create branch {branch_name}")
-async def create_branch(branch_name: str, data: dict[str, Any]) -> None:
+@flow(name="create-branch", flow_run_name="Create branch {model.name}")
+async def create_branch(model: BranchCreateModel) -> None:
     service = services.service
 
-    await add_branch_tag(branch_name)
+    await add_branch_tag(model.name)
 
     try:
-        await Branch.get_by_name(db=service.database, name=branch_name)
-        raise ValueError(f"The branch {branch_name}, already exist")
+        await Branch.get_by_name(db=service.database, name=model.name)
+        raise ValueError(f"The branch {model.name}, already exist")
     except BranchNotFoundError:
         pass
 
-    data_dict: dict[str, Any] = dict(data)
+    data_dict: dict[str, Any] = dict(model)
     if "is_isolated" in data_dict:
         del data_dict["is_isolated"]
 
