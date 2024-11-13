@@ -79,6 +79,9 @@ class ComputedAttributeTarget(BaseModel):
 
         return ["ids"]
 
+    def __hash__(self):
+        return hash((self.kind, self.attribute, tuple(self.filter_keys)))
+
 
 class RegisteredNodeComputedAttribute(BaseModel):
     local_fields: dict[str, list[ComputedAttributeTarget]] = Field(

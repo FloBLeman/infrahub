@@ -218,28 +218,30 @@ async def computed_attribute_setup() -> None:
         automations = await client.read_automations()
         existing_computed_attr_automations = ComputedAttributeAutomations.from_prefect(automations=automations)
 
-        computed_attributes: dict[str, ComputedAttributeTarget] = {}
-        for item in schema_branch._computed_jinja2_attribute_map.values():
-            for attrs in list(item.local_fields.values()) + list(item.relationships.values()):
-                for attr in attrs:
-                    if attr.key_name in computed_attributes:
-                        continue
-                    log.info(f"found {attr.key_name}")
-                    computed_attributes[attr.key_name] = attr
+        mapping: dict[ComputedAttributeTarget, set[str]] = {}
 
-        for identifier, computed_attribute in computed_attributes.items():
+        for node, registered_computed_attribute in schema_branch._computed_jinja2_attribute_map.items():
+            for local_fields in registered_computed_attribute.local_fields.values():
+                for local_field in local_fields:
+                    if local_field not in mapping:
+                        mapping[local_field] = set()
+                    mapping[local_field].add(node)
+
+        for computed_attribute, source_node_types in mapping.items():
             log.info(f"processing {computed_attribute.key_name}")
             scope = "default"
 
             automation = AutomationCore(
-                name=AUTOMATION_NAME.format(prefix=AUTOMATION_NAME_PREFIX, identifier=identifier, scope=scope),
-                description=f"Process value of the computed attribute for {identifier} [{scope}]",
+                name=AUTOMATION_NAME.format(
+                    prefix=AUTOMATION_NAME_PREFIX, identifier=computed_attribute.key_name, scope=scope
+                ),
+                description=f"Process value of the computed attribute for {computed_attribute.key_name} [{scope}]",
                 enabled=True,
                 trigger=EventTrigger(
                     posture=Posture.Reactive,
                     expect={"infrahub.node.*"},
                     within=timedelta(0),
-                    match=ResourceSpecification({"infrahub.node.kind": [computed_attribute.kind]}),
+                    match=ResourceSpecification({"infrahub.node.kind": list(source_node_types)}),
                     threshold=1,
                 ),
                 actions=[
@@ -258,8 +260,8 @@ async def computed_attribute_setup() -> None:
                 ],
             )
 
-            if existing_computed_attr_automations.has(identifier=identifier, scope=scope):
-                existing = existing_computed_attr_automations.get(identifier=identifier, scope=scope)
+            if existing_computed_attr_automations.has(identifier=computed_attribute.key_name, scope=scope):
+                existing = existing_computed_attr_automations.get(identifier=computed_attribute.key_name, scope=scope)
                 await client.update_automation(automation_id=existing.id, automation=automation)
                 log.info(f"{computed_attribute.key_name} Updated")
             else:
