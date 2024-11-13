@@ -330,7 +330,12 @@ ignore_errors = true
 
 [[tool.mypy.overrides]]
 module = "infrahub.graphql.mutations.schema"
-ignore_errors = true
+disable_error_code = [
+    "arg-type",
+    "operator",
+    "union-attr",
+]
+
 
 [[tool.mypy.overrides]]
 module = "infrahub.graphql.resolver"
