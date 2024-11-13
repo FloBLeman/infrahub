@@ -46,9 +46,8 @@ class BranchCreateInput(InputObjectType):
 class BranchCreate(Mutation):
     class Arguments:
         data = BranchCreateInput(required=True)
-        # TODO: We might want to change `background_execution` to `wait_until_completion` to keep consistent
-        #  with other mutations. It would be a breaking change though.
-        background_execution = Boolean(required=False)
+        background_execution = Boolean(required=False, deprecation_reason="Please use `wait_until_completion` instead")
+        wait_until_completion = Boolean(required=False)
 
     ok = Boolean()
     object = Field(BranchType)
@@ -58,21 +57,31 @@ class BranchCreate(Mutation):
     @retry_db_transaction(name="branch_create")
     @trace.get_tracer(__name__).start_as_current_span("branch_create")
     async def mutate(
-        cls, root: dict, info: GraphQLResolveInfo, data: BranchCreateInput, background_execution: bool = False
+        cls,
+        root: dict,
+        info: GraphQLResolveInfo,
+        data: BranchCreateInput,
+        background_execution: bool = False,
+        wait_until_completion: bool = True,
     ) -> Self:
         context: GraphqlContext = info.context
         task: dict | None = None
 
         model = BranchCreateModel(**data)
 
+        if background_execution or not wait_until_completion:
+            workflow = await context.active_service.workflow.submit_workflow(
+                workflow=BRANCH_CREATE, parameters={"model": model}
+            )
+            task = {"id": workflow.id}
+            return cls(ok=True, task=task)
+
         await context.active_service.workflow.execute_workflow(workflow=BRANCH_CREATE, parameters={"model": model})
 
         # Retrieve created branch
         obj = await Branch.get_by_name(db=context.db, name=model.name)
-        ok = True
         fields = await extract_fields(info.field_nodes[0].selection_set)
-
-        return cls(object=await obj.to_graphql(fields=fields.get("object", {})), ok=ok, task=task)
+        return cls(object=await obj.to_graphql(fields=fields.get("object", {})), ok=True, task=task)
 
 
 class BranchNameInput(InputObjectType):
