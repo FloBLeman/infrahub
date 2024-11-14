@@ -256,6 +256,13 @@ UPDATE_COMPUTED_ATTRIBUTE_TRANSFORM = WorkflowDefinition(
     function="process_transform",
 )
 
+QUERY_COMPUTED_ATTRIBUTE_TRANSFORM_TARGETS = WorkflowDefinition(
+    name="query-computed-attribute-transform-targets",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.computed_attribute.tasks",
+    function="query_transform_targets",
+)
+
 REQUEST_PROPOSED_CHANGE_DATA_INTEGRITY = WorkflowDefinition(
     name="proposed-changed-data-integrity",
     type=WorkflowType.INTERNAL,
@@ -318,6 +325,7 @@ workflows = [
     UPDATE_COMPUTED_ATTRIBUTE_TRANSFORM,
     REQUEST_PROPOSED_CHANGE_DATA_INTEGRITY,
     AUTOMATION_SCHEMA_UPDATED,
+    QUERY_COMPUTED_ATTRIBUTE_TRANSFORM_TARGETS,
 ]
 
 automation_setup_workflows = [AUTOMATION_GIT_UPDATED, AUTOMATION_SCHEMA_UPDATED]
