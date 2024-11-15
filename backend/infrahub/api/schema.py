@@ -338,6 +338,8 @@ async def load_schema(
         if migration_error_msgs:
             raise MigrationError(message=",\n".join(migration_error_msgs))
 
+    await service.component.refresh_schema_hash(branches=[branch.name])
+
     log_data = get_log_data()
     request_id = log_data.get("request_id", "")
     event = SchemaUpdatedEvent(
@@ -346,8 +348,6 @@ async def load_schema(
         meta=EventMeta(initiator_id=WORKER_IDENTITY, request_id=request_id, account_id=account_session.account_id),
     )
     await service.event.send(event=event)
-
-    await service.component.refresh_schema_hash(branches=[branch.name])
 
     return SchemaUpdate(hash=updated_hash, previous_hash=original_hash, diff=result.diff)
 
