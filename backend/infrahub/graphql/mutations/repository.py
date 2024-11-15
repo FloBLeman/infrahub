@@ -10,12 +10,18 @@ from infrahub.core.manager import NodeManager
 from infrahub.core.protocols import CoreGenericRepository, CoreReadOnlyRepository, CoreRepository
 from infrahub.core.schema import NodeSchema
 from infrahub.exceptions import ValidationError
-from infrahub.git.models import GitRepositoryAdd, GitRepositoryAddReadOnly, GitRepositoryPullReadOnly
+from infrahub.git.models import (
+    GitRepositoryAdd,
+    GitRepositoryAddReadOnly,
+    GitRepositoryImportObjects,
+    GitRepositoryPullReadOnly,
+)
 from infrahub.graphql.types.common import IdentifierInput
 from infrahub.log import get_logger
 from infrahub.message_bus import messages
 from infrahub.message_bus.messages.git_repository_connectivity import GitRepositoryConnectivityResponse
 from infrahub.workflows.catalogue import (
+    GIT_REPOSITORIES_IMPORT_OBJECTS,
     GIT_REPOSITORIES_PULL_READ_ONLY,
     GIT_REPOSITORY_ADD,
     GIT_REPOSITORY_ADD_READ_ONLY,
@@ -228,7 +234,7 @@ class ProcessRepository(Mutation):
             branch=branch,
         )
 
-        message = messages.GitRepositoryImportObjects(
+        model = GitRepositoryImportObjects(
             repository_id=repository_id,
             repository_name=str(repo.name.value),
             repository_kind=repo.get_kind(),
@@ -236,7 +242,9 @@ class ProcessRepository(Mutation):
             infrahub_branch_name=branch.name,
         )
         if context.service:
-            await context.service.send(message=message)
+            await context.service.workflow.submit_workflow(
+                workflow=GIT_REPOSITORIES_IMPORT_OBJECTS, parameters={"model": model}
+            )
         return {"ok": True}
 
 

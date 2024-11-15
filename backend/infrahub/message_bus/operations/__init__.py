@@ -35,7 +35,6 @@ COMMAND_MAP = {
     "git.diff.names_only": git.diff.names_only,
     "git.file.get": git.file.get,
     "git.repository.connectivity": git.repository.connectivity,
-    "git.repository.import_objects": git.repository.import_objects,
     "refresh.git.fetch": git.repository.fetch,
     "refresh.registry.branches": refresh.registry.branches,
     "refresh.registry.rebased_branch": refresh.registry.rebased_branch,

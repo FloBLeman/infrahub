@@ -16,7 +16,6 @@ from .finalize_validator_execution import FinalizeValidatorExecution
 from .git_diff_namesonly import GitDiffNamesOnly, GitDiffNamesOnlyResponse
 from .git_file_get import GitFileGet, GitFileGetResponse
 from .git_repository_connectivity import GitRepositoryConnectivity
-from .git_repository_importobjects import GitRepositoryImportObjects
 from .proposed_change.request_proposedchange_refreshartifacts import RequestProposedChangeRefreshArtifacts
 from .proposed_change.request_proposedchange_repositorychecks import RequestProposedChangeRepositoryChecks
 from .proposed_change.request_proposedchange_rungenerators import RequestProposedChangeRunGenerators
@@ -53,7 +52,6 @@ MESSAGE_MAP: dict[str, type[InfrahubMessage]] = {
     "git.diff.names_only": GitDiffNamesOnly,
     "git.file.get": GitFileGet,
     "git.repository.connectivity": GitRepositoryConnectivity,
-    "git.repository.import_objects": GitRepositoryImportObjects,
     "schema.migration.path": SchemaMigrationPath,
     "schema.validator.path": SchemaValidatorPath,
     "refresh.git.fetch": RefreshGitFetch,

@@ -27,6 +27,7 @@ from .constants import AUTOMATION_NAME
 from .models import (
     GitRepositoryAdd,
     GitRepositoryAddReadOnly,
+    GitRepositoryImportObjects,
     GitRepositoryMerge,
     GitRepositoryPullReadOnly,
     RequestArtifactDefinitionGenerate,
@@ -473,3 +474,21 @@ async def setup_commit_automation() -> None:
         else:
             await client.create_automation(automation=automation)
             run_log.info(f"{AUTOMATION_NAME} Created")
+
+
+@flow(name="git-repository-import-object", flow_run_name="Import objects from git repository")
+async def import_objects_from_git_repository(model: GitRepositoryImportObjects) -> None:
+    service = services.service
+    await add_branch_tag(model.infrahub_branch_name)
+    async with service.git_report(
+        related_node=model.repository_id,
+        title=f"Processing repository ({model.repository_name})",
+    ) as git_report:
+        repo = await get_initialized_repo(
+            repository_id=model.repository_id,
+            name=model.repository_name,
+            service=services.service,
+            repository_kind=model.repository_kind,
+        )
+        repo.task_report = git_report
+        await repo.import_objects_from_files(infrahub_branch_name=model.infrahub_branch_name, commit=model.commit)

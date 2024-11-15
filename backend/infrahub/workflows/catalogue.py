@@ -282,6 +282,14 @@ AUTOMATION_GIT_UPDATED = WorkflowDefinition(
     function="setup_commit_automation",
 )
 
+GIT_REPOSITORIES_IMPORT_OBJECTS = WorkflowDefinition(
+    name="git-repository-import-object",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.git.tasks",
+    function="import_objects_from_git_repository",
+    tags=[WorkflowTag.DATABASE_CHANGE],
+)
+
 
 worker_pools = [INFRAHUB_WORKER_POOL]
 
@@ -315,6 +323,8 @@ workflows = [
     REQUEST_GENERATOR_DEFINITION_RUN,
     REQUEST_GENERATOR_RUN,
     REQUEST_PROPOSED_CHANGE_DATA_INTEGRITY,
+    AUTOMATION_SCHEMA_UPDATED,
+    GIT_REPOSITORIES_IMPORT_OBJECTS,
     SCHEMA_APPLY_MIGRATION,
     SCHEMA_VALIDATE_MIGRATION,
     TRANSFORM_JINJA2_RENDER,
