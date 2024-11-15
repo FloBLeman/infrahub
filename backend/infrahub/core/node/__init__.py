@@ -17,6 +17,7 @@ from infrahub.exceptions import InitializationError, NodeNotFoundError, PoolExha
 from infrahub.support.macro import MacroDefinition
 from infrahub.types import ATTRIBUTE_TYPES
 
+from ...graphql.constants import KIND_GRAPHQL_FIELD_NAME
 from ..relationship import RelationshipManager
 from ..utils import update_relationships_to
 from .base import BaseNode, BaseNodeMeta, BaseNodeOptions
@@ -621,7 +622,7 @@ class Node(BaseNode, metaclass=BaseNodeMeta):
             (dict): Return GraphQL Payload
         """
 
-        response: dict[str, Any] = {"id": self.id, "type": self.get_kind()}
+        response: dict[str, Any] = {"id": self.id, KIND_GRAPHQL_FIELD_NAME: self.get_kind()}
 
         if related_node_ids is not None:
             related_node_ids.add(self.id)
@@ -635,6 +636,7 @@ class Node(BaseNode, metaclass=BaseNodeMeta):
 
         for field_name in field_names:
             if field_name == "__typename":
+                # Note we already store kind within KIND_GRAPHQL_FIELD_NAME.
                 response[field_name] = self.get_kind()
                 continue
 
