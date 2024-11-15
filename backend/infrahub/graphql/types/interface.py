@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 from graphene import Interface
 from graphene.types.interface import InterfaceOptions
 
-from infrahub.core.constants.graphql_payload import KIND_GRAPHQL_FIELD_NAME
+from infrahub.graphql.constants import KIND_GRAPHQL_FIELD_NAME
 
 if TYPE_CHECKING:
     from graphql import GraphQLResolveInfo
