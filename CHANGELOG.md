@@ -11,6 +11,12 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) and the chang
 
 <!-- towncrier release notes start -->
 
+## [1.0.5](https://github.com/opsmill/infrahub/tree/v1.0.5) - 2024-11-15
+
+### Fixed
+
+- Node attribute name can now be `type` ([#4381](https://github.com/opsmill/infrahub/issues/4381))
+
 ## [1.0.4](https://github.com/opsmill/infrahub/tree/v1.0.4) - 2024-11-13
 
 ### Fixed
