@@ -549,28 +549,38 @@ class Node(BaseNode, metaclass=BaseNodeMeta):
                 identifier = f"{rel.schema.identifier}::{rel.peer_id}"
                 rel.id, rel.db_id = new_ids[identifier]
 
-    async def _update(self, db: InfrahubDatabase, at: Optional[Timestamp] = None) -> None:
+    async def _update(
+        self, db: InfrahubDatabase, at: Optional[Timestamp] = None, fields: list[str] | None = None
+    ) -> None:
         """Update the node in the database if needed."""
 
         update_at = Timestamp(at)
 
         # Go over the list of Attribute and update them one by one
         for name in self._attributes:
-            attr: BaseAttribute = getattr(self, name)
-            await attr.save(at=update_at, db=db)
+            if fields and name in fields:
+                attr: BaseAttribute = getattr(self, name)
+                await attr.save(at=update_at, db=db)
+            else:
+                attr: BaseAttribute = getattr(self, name)
+                await attr.save(at=update_at, db=db)
 
         # Go over the list of relationships and update them one by one
         for name in self._relationships:
-            rel: RelationshipManager = getattr(self, name)
-            await rel.save(at=update_at, db=db)
+            if fields and name in fields:
+                rel: RelationshipManager = getattr(self, name)
+                await rel.save(at=update_at, db=db)
+            else:
+                attr: BaseAttribute = getattr(self, name)
+                await attr.save(at=update_at, db=db)
 
-    async def save(self, db: InfrahubDatabase, at: Optional[Timestamp] = None) -> Self:
+    async def save(self, db: InfrahubDatabase, at: Optional[Timestamp] = None, fields: list[str] | None = None) -> Self:
         """Create or Update the Node in the database."""
 
         save_at = Timestamp(at)
 
         if self._existing:
-            await self._update(at=save_at, db=db)
+            await self._update(at=save_at, db=db, fields=fields)
             return self
 
         await self._create(at=save_at, db=db)
