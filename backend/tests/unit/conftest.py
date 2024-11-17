@@ -112,7 +112,7 @@ async def git_fixture_repo(git_sources_dir: Path, git_repos_dir: Path) -> Infrah
     repo = await InfrahubRepository.new(
         id=UUIDT.new(),
         name="test_basename",
-        location=f"{git_sources_dir}/test_base",
+        location=str(git_sources_dir / "test_base"),
         client=InfrahubClient(config=Config(requester=dummy_async_request)),
     )
 
@@ -1165,6 +1165,7 @@ async def car_person_data_generic(db: InfrahubDatabase, register_core_models_sch
         "c1": c1,
         "c2": c2,
         "c3": c3,
+        "c4": c4,
         "q1": q1,
         "r1": r1,
     }

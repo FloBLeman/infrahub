@@ -66,8 +66,8 @@ authlib = "1.3.2"
 rich = "^13"
 pyarrow = "^14"
 numpy = [
-    { version = "^1.24.2", optional = true, python = ">=3.9,<3.12" },
-    { version = "^1.26.2", optional = true, python = ">=3.12" },
+    { version = "^1.24.2", python = ">=3.9,<3.12" },
+    { version = "^1.26.2", python = ">=3.12" },
 ]
 
 
@@ -202,7 +202,13 @@ pretty = true
 ignore_missing_imports = true
 disallow_untyped_defs = true
 disable_error_code = ["type-abstract"]
-exclude = ["^backend/tests/scale", "^backend/tests/unit", "^backend/tests/test_data", "^backend/tests/query_benchmark"]
+exclude = [
+    "^backend/tests/fixtures/repos/*", # To avoid 'Duplicate module named "transforms"'
+    "^backend/tests/scale",
+    "^backend/tests/unit",
+    "^backend/tests/test_data",
+    "^backend/tests/query_benchmark"
+]
 
 [[tool.mypy.overrides]]
 module = "infrahub.*"
@@ -223,10 +229,6 @@ disallow_untyped_defs = false
 [[tool.mypy.overrides]]
 module = "tests.integration.*"
 disallow_untyped_defs = false
-
-[[tool.mypy.overrides]]
-module = "infrahub.api.diff.diff"
-ignore_errors = true
 
 [[tool.mypy.overrides]]
 module = "infrahub.core.attribute"
@@ -330,7 +332,12 @@ ignore_errors = true
 
 [[tool.mypy.overrides]]
 module = "infrahub.graphql.mutations.schema"
-ignore_errors = true
+disable_error_code = [
+    "arg-type",
+    "operator",
+    "union-attr",
+]
+
 
 [[tool.mypy.overrides]]
 module = "infrahub.graphql.resolver"

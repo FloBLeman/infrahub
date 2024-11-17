@@ -1,9 +1,7 @@
 from .constants import WorkflowTag, WorkflowType
 from .models import WorkerPoolDefinition, WorkflowDefinition
 
-INFRAHUB_WORKER_POOL = WorkerPoolDefinition(
-    name="infrahub-worker", worker_type="infrahubasync", description="Default Pool for internal tasks"
-)
+INFRAHUB_WORKER_POOL = WorkerPoolDefinition(name="infrahub-worker", description="Default Pool for internal tasks")
 
 WEBHOOK_SEND = WorkflowDefinition(
     name="event-send-webhook",
@@ -168,6 +166,14 @@ BRANCH_REBASE = WorkflowDefinition(
     tags=[WorkflowTag.DATABASE_CHANGE],
 )
 
+BRANCH_CREATE = WorkflowDefinition(
+    name="create-branch",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.core.branch.tasks",
+    function="create_branch",
+    tags=[WorkflowTag.DATABASE_CHANGE],
+)
+
 BRANCH_MERGE = WorkflowDefinition(
     name="branch-merge",
     type=WorkflowType.INTERNAL,
@@ -205,6 +211,13 @@ BRANCH_CANCEL_PROPOSED_CHANGES = WorkflowDefinition(
     function="cancel_proposed_changes_branch",
 )
 
+PROPOSED_CHANGE_MERGE = WorkflowDefinition(
+    name="proposed-change-merge",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.proposed_change.tasks",
+    function="merge_proposed_change",
+)
+
 UPDATE_GRAPHQL_QUERY_GROUP = WorkflowDefinition(
     name="update_graphql_query_group",
     type=WorkflowType.INTERNAL,
@@ -226,11 +239,26 @@ COMPUTED_ATTRIBUTE_SETUP = WorkflowDefinition(
     function="computed_attribute_setup",
 )
 
+COMPUTED_ATTRIBUTE_SETUP_PYTHON = WorkflowDefinition(
+    name="computed-attribute-setup-python",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.computed_attribute.tasks",
+    function="computed_attribute_setup_python",
+)
+
+
 UPDATE_COMPUTED_ATTRIBUTE_TRANSFORM = WorkflowDefinition(
     name="process_computed_attribute_transform",
     type=WorkflowType.INTERNAL,
     module="infrahub.computed_attribute.tasks",
     function="process_transform",
+)
+
+QUERY_COMPUTED_ATTRIBUTE_TRANSFORM_TARGETS = WorkflowDefinition(
+    name="query-computed-attribute-transform-targets",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.computed_attribute.tasks",
+    function="query_transform_targets",
 )
 
 REQUEST_PROPOSED_CHANGE_DATA_INTEGRITY = WorkflowDefinition(
@@ -240,40 +268,62 @@ REQUEST_PROPOSED_CHANGE_DATA_INTEGRITY = WorkflowDefinition(
     function="run_proposed_change_data_integrity_check",
 )
 
+AUTOMATION_SCHEMA_UPDATED = WorkflowDefinition(
+    name="schema-updated-setup",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.schema.tasks",
+    function="schema_updated_setup",
+)
+
+AUTOMATION_GIT_UPDATED = WorkflowDefinition(
+    name="git-commit-automation-setup",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.git.tasks",
+    function="setup_commit_automation",
+)
+
 
 worker_pools = [INFRAHUB_WORKER_POOL]
 
 workflows = [
-    WEBHOOK_SEND,
-    TRANSFORM_JINJA2_RENDER,
-    TRANSFORM_PYTHON_RENDER,
     ANONYMOUS_TELEMETRY_SEND,
-    SCHEMA_APPLY_MIGRATION,
-    SCHEMA_VALIDATE_MIGRATION,
-    TRIGGER_ARTIFACT_DEFINITION_GENERATE,
-    IPAM_RECONCILIATION,
-    GIT_REPOSITORIES_SYNC,
-    GIT_REPOSITORIES_CREATE_BRANCH,
-    REQUEST_ARTIFACT_GENERATE,
-    BRANCH_REBASE,
-    BRANCH_MERGE,
-    BRANCH_DELETE,
-    BRANCH_VALIDATE,
-    BRANCH_MERGE_MUTATION,
-    REQUEST_ARTIFACT_DEFINITION_GENERATE,
-    REQUEST_GENERATOR_RUN,
-    REQUEST_DIFF_UPDATE,
-    REQUEST_DIFF_REFRESH,
-    GIT_REPOSITORIES_PULL_READ_ONLY,
-    GIT_REPOSITORIES_MERGE,
-    TRIGGER_GENERATOR_DEFINITION_RUN,
+    AUTOMATION_GIT_UPDATED,
+    AUTOMATION_SCHEMA_UPDATED,
     BRANCH_CANCEL_PROPOSED_CHANGES,
-    REQUEST_GENERATOR_DEFINITION_RUN,
-    UPDATE_GRAPHQL_QUERY_GROUP,
+    BRANCH_CREATE,
+    BRANCH_DELETE,
+    BRANCH_MERGE,
+    BRANCH_MERGE_MUTATION,
+    BRANCH_REBASE,
+    BRANCH_VALIDATE,
+    COMPUTED_ATTRIBUTE_SETUP,
+    COMPUTED_ATTRIBUTE_SETUP_PYTHON,
+    GIT_REPOSITORIES_CREATE_BRANCH,
+    GIT_REPOSITORIES_MERGE,
+    GIT_REPOSITORIES_PULL_READ_ONLY,
+    GIT_REPOSITORIES_SYNC,
     GIT_REPOSITORY_ADD,
     GIT_REPOSITORY_ADD_READ_ONLY,
+    IPAM_RECONCILIATION,
     PROCESS_COMPUTED_MACRO,
-    COMPUTED_ATTRIBUTE_SETUP,
-    UPDATE_COMPUTED_ATTRIBUTE_TRANSFORM,
+    PROPOSED_CHANGE_MERGE,
+    QUERY_COMPUTED_ATTRIBUTE_TRANSFORM_TARGETS,
+    REQUEST_ARTIFACT_DEFINITION_GENERATE,
+    REQUEST_ARTIFACT_GENERATE,
+    REQUEST_DIFF_REFRESH,
+    REQUEST_DIFF_UPDATE,
+    REQUEST_GENERATOR_DEFINITION_RUN,
+    REQUEST_GENERATOR_RUN,
     REQUEST_PROPOSED_CHANGE_DATA_INTEGRITY,
+    SCHEMA_APPLY_MIGRATION,
+    SCHEMA_VALIDATE_MIGRATION,
+    TRANSFORM_JINJA2_RENDER,
+    TRANSFORM_PYTHON_RENDER,
+    TRIGGER_ARTIFACT_DEFINITION_GENERATE,
+    TRIGGER_GENERATOR_DEFINITION_RUN,
+    UPDATE_COMPUTED_ATTRIBUTE_TRANSFORM,
+    UPDATE_GRAPHQL_QUERY_GROUP,
+    WEBHOOK_SEND,
 ]
+
+automation_setup_workflows = [AUTOMATION_GIT_UPDATED, AUTOMATION_SCHEMA_UPDATED]
