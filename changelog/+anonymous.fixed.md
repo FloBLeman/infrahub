@@ -1,0 +1,1 @@
+Anonymous user will get a 401 response when trying to load a schema
