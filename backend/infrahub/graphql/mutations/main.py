@@ -64,14 +64,10 @@ class InfrahubMutationMixin:
         validate_mutation_permissions(operation=cls.__name__, account_session=context.account_session)
 
         if "Create" in cls.__name__:
-            obj, mutation = await cls.mutate_create(
-                info=info, branch=context.branch, data=data, **kwargs
-            )
+            obj, mutation = await cls.mutate_create(info=info, branch=context.branch, data=data, **kwargs)
             action = MutationAction.ADDED
         elif "Update" in cls.__name__:
-            obj, mutation = await cls.mutate_update(
-                info=info, branch=context.branch, data=data, **kwargs
-            )
+            obj, mutation = await cls.mutate_update(info=info, branch=context.branch, data=data, **kwargs)
             action = MutationAction.UPDATED
         elif "Upsert" in cls.__name__:
             node_manager = NodeManager()
@@ -88,9 +84,7 @@ class InfrahubMutationMixin:
             else:
                 action = MutationAction.UPDATED
         elif "Delete" in cls.__name__:
-            obj, mutation = await cls.mutate_delete(
-                info=info, branch=context.branch, data=data, **kwargs
-            )
+            obj, mutation = await cls.mutate_delete(info=info, branch=context.branch, data=data, **kwargs)
             action = MutationAction.REMOVED
         else:
             raise ValueError(
