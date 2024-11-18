@@ -96,14 +96,12 @@ async def checks(message: messages.RequestRepositoryChecks, service: InfrahubSer
         await service.send(message=event)
 
 
-@flow(name="repository-users-check")
+@flow(
+    name="repository-users-check",
+    flow_run_name="Evaluating user-defined checks on repository {message.repository} and proposed change {message.proposed_change}",
+)
 async def user_checks(message: messages.RequestRepositoryUserChecks, service: InfrahubServices) -> None:
     """Request to start validation checks on a specific repository for User-defined checks."""
-    log.info(
-        "Evaluating user-defined checks",
-        repository_id=message.repository,
-        proposed_change_id=message.proposed_change,
-    )
     events: List[InfrahubMessage] = []
 
     repository = await service.client.get(

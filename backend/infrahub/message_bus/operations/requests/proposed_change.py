@@ -185,13 +185,14 @@ async def pipeline(message: messages.RequestProposedChangePipeline, service: Inf
         await service.send(message=event)
 
 
-@flow(name="proposed-changed-schema-integrity")
+@flow(
+    name="proposed-changed-schema-integrity",
+    flow_run_name="Got a request to process schema integrity defined in proposed_change: {message.proposed_change}",
+)
 async def schema_integrity(
     message: messages.RequestProposedChangeSchemaIntegrity,
     service: InfrahubServices,  # pylint: disable=unused-argument
 ) -> None:
-    log.info(f"Got a request to process schema integrity defined in proposed_change: {message.proposed_change}")
-
     # For now, we retrieve the latest schema for each branch from the registry
     # In the future it would be good to generate the object SchemaUpdateValidationResult from message.branch_diff
     source_schema = registry.schema.get_schema_branch(name=message.source_branch).duplicate()
@@ -283,9 +284,11 @@ async def repository_checks(message: messages.RequestProposedChangeRepositoryChe
         await service.send(message=event)
 
 
-@flow(name="proposed-changed-refresh-artifact")
+@flow(
+    name="proposed-changed-refresh-artifact",
+    flow_run_name="Refreshing artifacts for change_proposal={message.proposed_change}",
+)
 async def refresh_artifacts(message: messages.RequestProposedChangeRefreshArtifacts, service: InfrahubServices) -> None:
-    log.info(f"Refreshing artifacts for change_proposal={message.proposed_change}")
     definition_information = await service.client.execute_graphql(
         query=GATHER_ARTIFACT_DEFINITIONS,
         branch_name=message.source_branch,
@@ -495,9 +498,11 @@ query GatherGraphQLQuerySubscribers($members: [ID!]) {
 """
 
 
-@flow(name="proposed-changed-run-tests")
+@flow(
+    name="proposed-changed-run-tests",
+    flow_run_name="Running_repository_tests on proposed change {message.proposed_change}",
+)
 async def run_tests(message: messages.RequestProposedChangeRunTests, service: InfrahubServices) -> None:
-    log.info("running_repository_tests", proposed_change=message.proposed_change)
     proposed_change = await service.client.get(kind=InfrahubKind.PROPOSEDCHANGE, id=message.proposed_change)
 
     def _execute(

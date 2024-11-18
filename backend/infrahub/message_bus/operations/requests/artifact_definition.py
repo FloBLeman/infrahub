@@ -13,13 +13,12 @@ from infrahub.services import InfrahubServices
 log = get_logger()
 
 
-@flow(name="artifact-definition-check")
+@flow(
+    name="artifact-definition-check",
+    flow_run_name="Validating generation of artifacts of artifact definition {message.artifact_definition.definition_id} "
+    "on source branch {message.source_branch}",
+)
 async def check(message: messages.RequestArtifactDefinitionCheck, service: InfrahubServices) -> None:
-    log.info(
-        "Validating generation of artifacts",
-        artifact_definition=message.artifact_definition.definition_id,
-        source_branch=message.source_branch,
-    )
     events: list[InfrahubMessage] = []
 
     artifact_definition = await service.client.get(
