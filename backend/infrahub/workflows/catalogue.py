@@ -290,6 +290,14 @@ GIT_REPOSITORIES_IMPORT_OBJECTS = WorkflowDefinition(
     tags=[WorkflowTag.DATABASE_CHANGE],
 )
 
+REQUEST_PROPOSED_CHANGE_RUN_GENERATORS = WorkflowDefinition(
+    name="proposed-changed-run-generator",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.proposed_change.tasks",
+    function="run_generators",
+    tags=[WorkflowTag.DATABASE_CHANGE],
+)
+
 
 worker_pools = [INFRAHUB_WORKER_POOL]
 
@@ -324,6 +332,7 @@ workflows = [
     REQUEST_GENERATOR_DEFINITION_RUN,
     REQUEST_GENERATOR_RUN,
     REQUEST_PROPOSED_CHANGE_DATA_INTEGRITY,
+    REQUEST_PROPOSED_CHANGE_RUN_GENERATORS,
     SCHEMA_APPLY_MIGRATION,
     SCHEMA_VALIDATE_MIGRATION,
     TRANSFORM_JINJA2_RENDER,

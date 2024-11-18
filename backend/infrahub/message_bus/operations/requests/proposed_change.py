@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Union
 
 import pytest
-from infrahub_sdk.protocols import CoreGeneratorDefinition
 from prefect import flow
 from pydantic import BaseModel
 
@@ -22,7 +21,6 @@ from infrahub.core.registry import registry
 from infrahub.core.validators.checker import schema_validators_checker
 from infrahub.core.validators.determiner import ConstraintValidatorDeterminer
 from infrahub.dependencies.registry import get_component_registry
-from infrahub.generators.models import ProposedChangeGeneratorDefinition
 from infrahub.git.repository import InfrahubRepository, get_initialized_repo
 from infrahub.log import get_logger
 from infrahub.message_bus import InfrahubMessage, messages
@@ -32,10 +30,10 @@ from infrahub.message_bus.types import (
     ProposedChangeRepository,
     ProposedChangeSubscriber,
 )
-from infrahub.proposed_change.models import RequestProposedChangeDataIntegrity
+from infrahub.proposed_change.models import RequestProposedChangeDataIntegrity, RequestProposedChangeRunGenerators
 from infrahub.pytest_plugin import InfrahubBackendPlugin
 from infrahub.services import InfrahubServices  # noqa: TCH001
-from infrahub.workflows.catalogue import REQUEST_PROPOSED_CHANGE_DATA_INTEGRITY
+from infrahub.workflows.catalogue import REQUEST_PROPOSED_CHANGE_DATA_INTEGRITY, REQUEST_PROPOSED_CHANGE_RUN_GENERATORS
 
 if TYPE_CHECKING:
     from infrahub_sdk.node import InfrahubNode
@@ -119,22 +117,23 @@ async def pipeline(message: messages.RequestProposedChangePipeline, service: Inf
         )
 
     if message.check_type in [CheckType.ALL, CheckType.GENERATOR]:
-        events.append(
-            messages.RequestProposedChangeRunGenerators(
-                proposed_change=message.proposed_change,
-                source_branch=message.source_branch,
-                source_branch_sync_with_git=message.source_branch_sync_with_git,
-                destination_branch=message.destination_branch,
-                branch_diff=branch_diff,
-                refresh_artifacts=message.check_type is CheckType.ALL,
-                do_repository_checks=message.check_type is CheckType.ALL,
-            )
+        model_proposed_change_run_generator = RequestProposedChangeRunGenerators(
+            proposed_change=message.proposed_change,
+            source_branch=message.source_branch,
+            source_branch_sync_with_git=message.source_branch_sync_with_git,
+            destination_branch=message.destination_branch,
+            branch_diff=branch_diff,
+            refresh_artifacts=message.check_type is CheckType.ALL,
+            do_repository_checks=message.check_type is CheckType.ALL,
+        )
+        await service.workflow.submit_workflow(
+            workflow=REQUEST_PROPOSED_CHANGE_RUN_GENERATORS, parameters={"model": model_proposed_change_run_generator}
         )
 
     if message.check_type in [CheckType.ALL, CheckType.DATA] and branch_diff.has_node_changes(
         branch=message.source_branch
     ):
-        model = RequestProposedChangeDataIntegrity(
+        model_proposed_change_data_integrity = RequestProposedChangeDataIntegrity(
             proposed_change=message.proposed_change,
             source_branch=message.source_branch,
             source_branch_sync_with_git=message.source_branch_sync_with_git,
@@ -142,7 +141,7 @@ async def pipeline(message: messages.RequestProposedChangePipeline, service: Inf
             branch_diff=branch_diff,
         )
         await service.workflow.submit_workflow(
-            workflow=REQUEST_PROPOSED_CHANGE_DATA_INTEGRITY, parameters={"model": model}
+            workflow=REQUEST_PROPOSED_CHANGE_DATA_INTEGRITY, parameters={"model": model_proposed_change_data_integrity}
         )
 
     if message.check_type in [CheckType.REPOSITORY, CheckType.USER]:
@@ -337,91 +336,6 @@ async def refresh_artifacts(message: messages.RequestProposedChangeRefreshArtifa
 
             msg.assign_meta(parent=message)
             await service.send(message=msg)
-
-
-@flow(name="proposed-changed-run-generator")
-async def run_generators(message: messages.RequestProposedChangeRunGenerators, service: InfrahubServices) -> None:
-    generators = await service.client.filters(
-        kind=CoreGeneratorDefinition,
-        prefetch_relationships=True,
-        populate_store=True,
-        branch=message.source_branch,
-    )
-    generator_definitions = [
-        ProposedChangeGeneratorDefinition(
-            definition_id=generator.id,
-            definition_name=generator.name.value,
-            class_name=generator.class_name.value,
-            file_path=generator.file_path.value,
-            query_name=generator.query.peer.name.value,
-            query_models=generator.query.peer.models.value,
-            repository_id=generator.repository.peer.id,
-            parameters=generator.parameters.value,
-            group_id=generator.targets.peer.id,
-            convert_query_response=generator.convert_query_response.value,
-        )
-        for generator in generators
-    ]
-
-    for generator_definition in generator_definitions:
-        # Request generator definitions if the source branch that is managed in combination
-        # to the Git repository containing modifications which could indicate changes to the transforms
-        # in code
-        # Alternatively if the queries used touches models that have been modified in the path
-        # impacted artifact definitions will be included for consideration
-
-        select = DefinitionSelect.NONE
-        select = select.add_flag(
-            current=select,
-            flag=DefinitionSelect.FILE_CHANGES,
-            condition=message.source_branch_sync_with_git and message.branch_diff.has_file_modifications,
-        )
-
-        for changed_model in message.branch_diff.modified_kinds(branch=message.source_branch):
-            select = select.add_flag(
-                current=select,
-                flag=DefinitionSelect.MODIFIED_KINDS,
-                condition=changed_model in generator_definition.query_models,
-            )
-
-        if select:
-            msg = messages.RequestGeneratorDefinitionCheck(
-                generator_definition=generator_definition,
-                branch_diff=message.branch_diff,
-                proposed_change=message.proposed_change,
-                source_branch=message.source_branch,
-                source_branch_sync_with_git=message.source_branch_sync_with_git,
-                destination_branch=message.destination_branch,
-            )
-            msg.assign_meta(parent=message)
-            await service.send(message=msg)
-
-    next_messages: list[InfrahubMessage] = []
-    if message.refresh_artifacts:
-        next_messages.append(
-            messages.RequestProposedChangeRefreshArtifacts(
-                proposed_change=message.proposed_change,
-                source_branch=message.source_branch,
-                source_branch_sync_with_git=message.source_branch_sync_with_git,
-                destination_branch=message.destination_branch,
-                branch_diff=message.branch_diff,
-            )
-        )
-
-    if message.do_repository_checks:
-        next_messages.append(
-            messages.RequestProposedChangeRepositoryChecks(
-                proposed_change=message.proposed_change,
-                source_branch=message.source_branch,
-                source_branch_sync_with_git=message.source_branch_sync_with_git,
-                destination_branch=message.destination_branch,
-                branch_diff=message.branch_diff,
-            )
-        )
-
-    for next_msg in next_messages:
-        next_msg.assign_meta(parent=message)
-        await service.send(message=next_msg)
 
 
 GATHER_ARTIFACT_DEFINITIONS = """
