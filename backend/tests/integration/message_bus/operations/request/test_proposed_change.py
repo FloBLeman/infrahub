@@ -17,7 +17,7 @@ from infrahub.server import app, app_initialization
 from infrahub.services import InfrahubServices, services
 from infrahub.services.adapters.workflow.local import WorkflowLocalExecution
 from tests.adapters.log import FakeLogger
-from tests.adapters.message_bus import BusRecorder
+from tests.adapters.message_bus import BusRecorder, BusSimulator
 from tests.helpers.file_repo import FileRepo
 from tests.helpers.graphql import graphql_mutation
 from tests.helpers.test_client import InfrahubTestClient
@@ -146,8 +146,9 @@ async def test_run_pipeline_validate_requested_jobs(
         await obj.new(db=db, name="ci-pipeline-01", description="for use within tests")
         await obj.save(db=db)
 
-        bus_post_data_changes = BusRecorder()
+        bus_post_data_changes = BusSimulator(database=services.service.database)
         services.service.message_bus = bus_post_data_changes
+
         await pipeline(message=message, service=services.service)
 
         assert sorted(bus_pre_data_changes.seen_routing_keys) == [
@@ -160,7 +161,8 @@ async def test_run_pipeline_validate_requested_jobs(
             "request.proposed_change.refresh_artifacts",
             "request.proposed_change.repository_checks",
             "request.proposed_change.run_tests",
-            "request.proposed_change.schema_integrity",
+            "request.repository.user_checks",
+            "schema.validator.path",
         ]
 
 
