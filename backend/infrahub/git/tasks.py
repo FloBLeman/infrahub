@@ -45,38 +45,32 @@ async def add_git_repository(model: GitRepositoryAdd) -> None:
     service = services.service
     await add_branch_tag(model.infrahub_branch_name)
 
-    async with service.git_report(
-        related_node=model.repository_id,
-        title=f"Initial import of the repository in branch: {model.infrahub_branch_name}",
-        created_by=model.created_by,
-    ) as git_report:
-        async with lock.registry.get(name=model.repository_name, namespace="repository"):
-            repo = await InfrahubRepository.new(
-                id=model.repository_id,
-                name=model.repository_name,
-                location=model.location,
-                client=service.client,
-                task_report=git_report,
-                infrahub_branch_name=model.infrahub_branch_name,
-                internal_status=model.internal_status,
-                default_branch_name=model.default_branch_name,
-            )
-            await repo.import_objects_from_files(
-                infrahub_branch_name=model.infrahub_branch_name, git_branch_name=model.default_branch_name
-            )
-            if model.internal_status == RepositoryInternalStatus.ACTIVE.value:
-                await repo.sync()
+    async with lock.registry.get(name=model.repository_name, namespace="repository"):
+        repo = await InfrahubRepository.new(
+            id=model.repository_id,
+            name=model.repository_name,
+            location=model.location,
+            client=service.client,
+            infrahub_branch_name=model.infrahub_branch_name,
+            internal_status=model.internal_status,
+            default_branch_name=model.default_branch_name,
+        )
+        await repo.import_objects_from_files(
+            infrahub_branch_name=model.infrahub_branch_name, git_branch_name=model.default_branch_name
+        )
+        if model.internal_status == RepositoryInternalStatus.ACTIVE.value:
+            await repo.sync()
 
-                # Notify other workers they need to clone the repository
-                notification = messages.RefreshGitFetch(
-                    meta=Meta(initiator_id=WORKER_IDENTITY, request_id=get_log_data().get("request_id", "")),
-                    location=model.location,
-                    repository_id=model.repository_id,
-                    repository_name=model.repository_name,
-                    repository_kind=InfrahubKind.REPOSITORY,
-                    infrahub_branch_name=model.infrahub_branch_name,
-                )
-                await service.send(message=notification)
+            # Notify other workers they need to clone the repository
+            notification = messages.RefreshGitFetch(
+                meta=Meta(initiator_id=WORKER_IDENTITY, request_id=get_log_data().get("request_id", "")),
+                location=model.location,
+                repository_id=model.repository_id,
+                repository_name=model.repository_name,
+                repository_kind=InfrahubKind.REPOSITORY,
+                infrahub_branch_name=model.infrahub_branch_name,
+            )
+            await service.send(message=notification)
 
 
 @flow(
@@ -86,35 +80,29 @@ async def add_git_repository(model: GitRepositoryAdd) -> None:
 async def add_git_repository_read_only(model: GitRepositoryAddReadOnly) -> None:
     service = services.service
     await add_branch_tag(model.infrahub_branch_name)
-    async with service.git_report(
-        related_node=model.repository_id,
-        title="Adding Repository",
-        created_by=model.created_by,
-    ) as git_report:
-        async with lock.registry.get(name=model.repository_name, namespace="repository"):
-            repo = await InfrahubReadOnlyRepository.new(
-                id=model.repository_id,
-                name=model.repository_name,
-                location=model.location,
-                client=service.client,
-                ref=model.ref,
-                infrahub_branch_name=model.infrahub_branch_name,
-                task_report=git_report,
-            )
-            await repo.import_objects_from_files(infrahub_branch_name=model.infrahub_branch_name)
-            if model.internal_status == RepositoryInternalStatus.ACTIVE.value:
-                await repo.sync_from_remote()
+    async with lock.registry.get(name=model.repository_name, namespace="repository"):
+        repo = await InfrahubReadOnlyRepository.new(
+            id=model.repository_id,
+            name=model.repository_name,
+            location=model.location,
+            client=service.client,
+            ref=model.ref,
+            infrahub_branch_name=model.infrahub_branch_name,
+        )
+        await repo.import_objects_from_files(infrahub_branch_name=model.infrahub_branch_name)
+        if model.internal_status == RepositoryInternalStatus.ACTIVE.value:
+            await repo.sync_from_remote()
 
-                # Notify other workers they need to clone the repository
-                notification = messages.RefreshGitFetch(
-                    meta=Meta(initiator_id=WORKER_IDENTITY, request_id=get_log_data().get("request_id", "")),
-                    location=model.location,
-                    repository_id=model.repository_id,
-                    repository_name=model.repository_name,
-                    repository_kind=InfrahubKind.REPOSITORY,
-                    infrahub_branch_name=model.infrahub_branch_name,
-                )
-                await service.send(message=notification)
+            # Notify other workers they need to clone the repository
+            notification = messages.RefreshGitFetch(
+                meta=Meta(initiator_id=WORKER_IDENTITY, request_id=get_log_data().get("request_id", "")),
+                location=model.location,
+                repository_id=model.repository_id,
+                repository_name=model.repository_name,
+                repository_kind=InfrahubKind.REPOSITORY,
+                infrahub_branch_name=model.infrahub_branch_name,
+            )
+            await service.send(message=notification)
 
 
 @flow(name="git_repositories_create_branch")
@@ -149,74 +137,63 @@ async def sync_remote_repositories() -> None:
     repositories = await service.client.get_list_repositories(branches=branches, kind=InfrahubKind.REPOSITORY)
 
     for repo_name, repository_data in repositories.items():
-        async with service.git_report(
-            title="Syncing repository", related_node=repository_data.repository.id, create_with_context=False
-        ) as git_report:
-            active_internal_status = RepositoryInternalStatus.ACTIVE.value
-            default_internal_status = repository_data.branch_info[registry.default_branch].internal_status
-            staging_branch = None
-            if default_internal_status != RepositoryInternalStatus.ACTIVE.value:
-                active_internal_status = RepositoryInternalStatus.STAGING.value
-                staging_branch = repository_data.get_staging_branch()
+        active_internal_status = RepositoryInternalStatus.ACTIVE.value
+        default_internal_status = repository_data.branch_info[registry.default_branch].internal_status
+        staging_branch = None
+        if default_internal_status != RepositoryInternalStatus.ACTIVE.value:
+            active_internal_status = RepositoryInternalStatus.STAGING.value
+            staging_branch = repository_data.get_staging_branch()
 
-            infrahub_branch = staging_branch or registry.default_branch
+        infrahub_branch = staging_branch or registry.default_branch
 
-            async with lock.registry.get(name=repo_name, namespace="repository"):
-                init_failed = False
+        async with lock.registry.get(name=repo_name, namespace="repository"):
+            init_failed = False
+            try:
+                repo = await InfrahubRepository.init(
+                    service=service,
+                    id=repository_data.repository.id,
+                    name=repository_data.repository.name.value,
+                    location=repository_data.repository.location.value,
+                    client=service.client,
+                    internal_status=active_internal_status,
+                    default_branch_name=repository_data.repository.default_branch.value,
+                )
+            except RepositoryError as exc:
+                service.log.error(str(exc))
+                init_failed = True
+
+            if init_failed:
                 try:
-                    repo = await InfrahubRepository.init(
+                    repo = await InfrahubRepository.new(
                         service=service,
                         id=repository_data.repository.id,
                         name=repository_data.repository.name.value,
                         location=repository_data.repository.location.value,
                         client=service.client,
-                        task_report=git_report,
                         internal_status=active_internal_status,
                         default_branch_name=repository_data.repository.default_branch.value,
                     )
-                except RepositoryError as exc:
-                    service.log.error(str(exc))
-                    init_failed = True
-
-                if init_failed:
-                    try:
-                        repo = await InfrahubRepository.new(
-                            service=service,
-                            id=repository_data.repository.id,
-                            name=repository_data.repository.name.value,
-                            location=repository_data.repository.location.value,
-                            client=service.client,
-                            task_report=git_report,
-                            internal_status=active_internal_status,
-                            default_branch_name=repository_data.repository.default_branch.value,
-                        )
-                        await repo.import_objects_from_files(
-                            git_branch_name=registry.default_branch, infrahub_branch_name=infrahub_branch
-                        )
-                    except RepositoryError as exc:
-                        await git_report.error(str(exc))
-                        continue
-
-                error: RepositoryError | None = None
-
-                try:
-                    await repo.sync(staging_branch=staging_branch)
-                    # Tell workers to fetch to stay in sync
-                    message = messages.RefreshGitFetch(
-                        meta=Meta(initiator_id=WORKER_IDENTITY, request_id=get_log_data().get("request_id", "")),
-                        location=repository_data.repository.location.value,
-                        repository_id=repository_data.repository.id,
-                        repository_name=repository_data.repository.name.value,
-                        repository_kind=repository_data.repository.get_kind(),
-                        infrahub_branch_name=infrahub_branch,
+                    await repo.import_objects_from_files(
+                        git_branch_name=registry.default_branch, infrahub_branch_name=infrahub_branch
                     )
-                    await service.send(message=message)
                 except RepositoryError as exc:
-                    error = exc
+                    log.info(exc.message)
+                    continue
 
-                await git_report.set_status(
-                    previous_status=repository_data.repository.operational_status.value, error=error
+            try:
+                await repo.sync(staging_branch=staging_branch)
+                # Tell workers to fetch to stay in sync
+                message = messages.RefreshGitFetch(
+                    meta=Meta(initiator_id=WORKER_IDENTITY, request_id=get_log_data().get("request_id", "")),
+                    location=repository_data.repository.location.value,
+                    repository_id=repository_data.repository.id,
+                    repository_name=repository_data.repository.name.value,
+                    repository_kind=repository_data.repository.get_kind(),
+                    infrahub_branch_name=infrahub_branch,
                 )
+                await service.send(message=message)
+            except RepositoryError as exc:
+                log.info(exc.message)
 
 
 @task
@@ -370,46 +347,43 @@ async def pull_read_only(model: GitRepositoryPullReadOnly) -> None:
             repository_id=model.repository_id,
         )
         return
-    async with service.git_report(related_node=model.repository_id, title="Pulling read-only repository") as git_report:
-        async with lock.registry.get(name=model.repository_name, namespace="repository"):
-            init_failed = False
-            try:
-                repo = await InfrahubReadOnlyRepository.init(
-                    id=model.repository_id,
-                    name=model.repository_name,
-                    location=model.location,
-                    client=service.client,
-                    ref=model.ref,
-                    infrahub_branch_name=model.infrahub_branch_name,
-                    task_report=git_report,
-                )
-            except RepositoryError:
-                init_failed = True
-
-            if init_failed:
-                repo = await InfrahubReadOnlyRepository.new(
-                    id=model.repository_id,
-                    name=model.repository_name,
-                    location=model.location,
-                    client=service.client,
-                    ref=model.ref,
-                    infrahub_branch_name=model.infrahub_branch_name,
-                    task_report=git_report,
-                )
-
-            await repo.import_objects_from_files(infrahub_branch_name=model.infrahub_branch_name, commit=model.commit)
-            await repo.sync_from_remote(commit=model.commit)
-
-            # Tell workers to fetch to stay in sync
-            message = messages.RefreshGitFetch(
-                meta=Meta(initiator_id=WORKER_IDENTITY, request_id=get_log_data().get("request_id", "")),
+    async with lock.registry.get(name=model.repository_name, namespace="repository"):
+        init_failed = False
+        try:
+            repo = await InfrahubReadOnlyRepository.init(
+                id=model.repository_id,
+                name=model.repository_name,
                 location=model.location,
-                repository_id=model.repository_id,
-                repository_name=model.repository_name,
-                repository_kind=InfrahubKind.READONLYREPOSITORY,
+                client=service.client,
+                ref=model.ref,
                 infrahub_branch_name=model.infrahub_branch_name,
             )
-            await service.send(message=message)
+        except RepositoryError:
+            init_failed = True
+
+        if init_failed:
+            repo = await InfrahubReadOnlyRepository.new(
+                id=model.repository_id,
+                name=model.repository_name,
+                location=model.location,
+                client=service.client,
+                ref=model.ref,
+                infrahub_branch_name=model.infrahub_branch_name,
+            )
+
+        await repo.import_objects_from_files(infrahub_branch_name=model.infrahub_branch_name, commit=model.commit)
+        await repo.sync_from_remote(commit=model.commit)
+
+        # Tell workers to fetch to stay in sync
+        message = messages.RefreshGitFetch(
+            meta=Meta(initiator_id=WORKER_IDENTITY, request_id=get_log_data().get("request_id", "")),
+            location=model.location,
+            repository_id=model.repository_id,
+            repository_name=model.repository_name,
+            repository_kind=InfrahubKind.READONLYREPOSITORY,
+            infrahub_branch_name=model.infrahub_branch_name,
+        )
+        await service.send(message=message)
 
 
 @flow(name="git-repository-merge")
