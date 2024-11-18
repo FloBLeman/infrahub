@@ -282,6 +282,14 @@ AUTOMATION_GIT_UPDATED = WorkflowDefinition(
     function="setup_commit_automation",
 )
 
+GIT_REPOSITORIES_IMPORT_OBJECTS = WorkflowDefinition(
+    name="git-repository-import-object",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.git.tasks",
+    function="import_objects_from_git_repository",
+    tags=[WorkflowTag.DATABASE_CHANGE],
+)
+
 
 worker_pools = [INFRAHUB_WORKER_POOL]
 
@@ -299,6 +307,7 @@ workflows = [
     COMPUTED_ATTRIBUTE_SETUP,
     COMPUTED_ATTRIBUTE_SETUP_PYTHON,
     GIT_REPOSITORIES_CREATE_BRANCH,
+    GIT_REPOSITORIES_IMPORT_OBJECTS,
     GIT_REPOSITORIES_MERGE,
     GIT_REPOSITORIES_PULL_READ_ONLY,
     GIT_REPOSITORIES_SYNC,
