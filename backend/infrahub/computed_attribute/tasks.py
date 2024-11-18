@@ -17,13 +17,12 @@ from infrahub.core.registry import registry
 from infrahub.git.repository import get_initialized_repo
 from infrahub.services import services
 from infrahub.support.macro import MacroDefinition
-from infrahub.tasks.registry import refresh_branches
 from infrahub.workflows.catalogue import (
     PROCESS_COMPUTED_MACRO,
     QUERY_COMPUTED_ATTRIBUTE_TRANSFORM_TARGETS,
     UPDATE_COMPUTED_ATTRIBUTE_TRANSFORM,
 )
-from infrahub.workflows.utils import add_branch_tag
+from infrahub.workflows.utils import add_branch_tag, wait_for_schema_to_converge
 
 from .constants import (
     PROCESS_AUTOMATION_NAME,
@@ -213,8 +212,11 @@ async def process_jinja2(
 
 @flow(name="computed-attribute-setup", flow_run_name="Setup computed attributes in task-manager")
 async def computed_attribute_setup() -> None:
-    schema_branch = registry.schema.get_schema_branch(name=registry.default_branch)
+    service = services.service
     log = get_run_logger()
+    await wait_for_schema_to_converge(branch_name=registry.default_branch, service=service, log=log)
+
+    schema_branch = registry.schema.get_schema_branch(name=registry.default_branch)
 
     async with get_client(sync_client=False) as client:
         deployments = {
@@ -279,12 +281,11 @@ async def computed_attribute_setup() -> None:
     flow_run_name="Setup computed attributes for Python transforms in task-manager",
 )
 async def computed_attribute_setup_python() -> None:
+    log = get_run_logger()
     service = services.service
-    async with service.database.start_session() as db:
-        await refresh_branches(db=db)
+    await wait_for_schema_to_converge(branch_name=registry.default_branch, service=service, log=log)
 
     schema_branch = registry.schema.get_schema_branch(name=registry.default_branch)
-    log = get_run_logger()
 
     transform_attributes = schema_branch.computed_attributes.python_attributes_by_transform
 
