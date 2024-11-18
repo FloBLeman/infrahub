@@ -31,6 +31,7 @@ async def test_trigger_repository_import(
     recorder = BusRecorder()
     service = InfrahubServices(database=db, message_bus=recorder, workflow=WorkflowLocalExecution())
 
+    # TODO: Removing this mock triggers issue: `Invalid file system for test-edge-demo, local directory ... missing`
     with init_global_service(service), patch(
         "infrahub.services.adapters.workflow.local.WorkflowLocalExecution.submit_workflow"
     ) as mock_submit_workflow:

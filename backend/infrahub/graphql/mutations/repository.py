@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Any, Optional, cast
 
-from graphene import Boolean, InputObjectType, Mutation, String
+from graphene import Boolean, Field, InputObjectType, Mutation, String
 
 from infrahub.core.constants import InfrahubKind, RepositoryInternalStatus
 from infrahub.core.manager import NodeManager
@@ -27,6 +27,7 @@ from infrahub.workflows.catalogue import (
     GIT_REPOSITORY_ADD_READ_ONLY,
 )
 
+from ..types.task import TaskInfo
 from .main import InfrahubMutationMixin, InfrahubMutationOptions
 
 if TYPE_CHECKING:
@@ -216,6 +217,7 @@ class ProcessRepository(Mutation):
         data = IdentifierInput(required=True)
 
     ok = Boolean()
+    task = Field(TaskInfo, required=False)
 
     @classmethod
     async def mutate(
@@ -241,11 +243,11 @@ class ProcessRepository(Mutation):
             commit=str(repo.commit.value),
             infrahub_branch_name=branch.name,
         )
-        if context.service:
-            await context.service.workflow.submit_workflow(
-                workflow=GIT_REPOSITORIES_IMPORT_OBJECTS, parameters={"model": model}
-            )
-        return {"ok": True}
+        workflow = await context.active_service.workflow.submit_workflow(
+            workflow=GIT_REPOSITORIES_IMPORT_OBJECTS, parameters={"model": model}
+        )
+        task = {"id": workflow.id}
+        return cls(ok=True, task=task)
 
 
 class ValidateRepositoryConnectivity(Mutation):
