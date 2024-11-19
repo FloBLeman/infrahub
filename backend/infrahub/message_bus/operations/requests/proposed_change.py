@@ -14,12 +14,7 @@ from pydantic import BaseModel
 from infrahub import config, lock
 from infrahub.core.constants import CheckType, InfrahubKind, RepositoryInternalStatus
 from infrahub.core.diff.coordinator import DiffCoordinator
-from infrahub.core.diff.model.diff import DiffElementType, SchemaConflict
-from infrahub.core.diff.model.path import NodeDiffFieldSummary
-from infrahub.core.integrity.object_conflict.conflict_recorder import ObjectConflictValidatorRecorder
 from infrahub.core.registry import registry
-from infrahub.core.validators.checker import schema_validators_checker
-from infrahub.core.validators.determiner import ConstraintValidatorDeterminer
 from infrahub.dependencies.registry import get_component_registry
 from infrahub.git.repository import InfrahubRepository, get_initialized_repo
 from infrahub.log import get_logger
@@ -30,16 +25,21 @@ from infrahub.message_bus.types import (
     ProposedChangeRepository,
     ProposedChangeSubscriber,
 )
-from infrahub.proposed_change.models import RequestProposedChangeDataIntegrity, RequestProposedChangeRunGenerators
+from infrahub.proposed_change.models import (
+    RequestProposedChangeDataIntegrity,
+    RequestProposedChangeRunGenerators,
+    RequestProposedChangeSchemaIntegrity,
+)
 from infrahub.pytest_plugin import InfrahubBackendPlugin
 from infrahub.services import InfrahubServices  # noqa: TCH001
-from infrahub.workflows.catalogue import REQUEST_PROPOSED_CHANGE_DATA_INTEGRITY, REQUEST_PROPOSED_CHANGE_RUN_GENERATORS
+from infrahub.workflows.catalogue import (
+    REQUEST_PROPOSED_CHANGE_DATA_INTEGRITY,
+    REQUEST_PROPOSED_CHANGE_RUN_GENERATORS,
+    REQUEST_PROPOSED_CHANGE_SCHEMA_INTEGRITY,
+)
 
 if TYPE_CHECKING:
     from infrahub_sdk.node import InfrahubNode
-
-    from infrahub.core.models import SchemaUpdateConstraintInfo
-    from infrahub.core.schema.schema_branch import SchemaBranch
 
 
 log = get_logger()
@@ -158,14 +158,17 @@ async def pipeline(message: messages.RequestProposedChangePipeline, service: Inf
     if message.check_type in [CheckType.ALL, CheckType.SCHEMA] and branch_diff.has_data_changes(
         branch=message.source_branch
     ):
-        events.append(
-            messages.RequestProposedChangeSchemaIntegrity(
-                proposed_change=message.proposed_change,
-                source_branch=message.source_branch,
-                source_branch_sync_with_git=message.source_branch_sync_with_git,
-                destination_branch=message.destination_branch,
-                branch_diff=branch_diff,
-            )
+        await service.workflow.submit_workflow(
+            workflow=REQUEST_PROPOSED_CHANGE_SCHEMA_INTEGRITY,
+            parameters={
+                "model": RequestProposedChangeSchemaIntegrity(
+                    proposed_change=message.proposed_change,
+                    source_branch=message.source_branch,
+                    source_branch_sync_with_git=message.source_branch_sync_with_git,
+                    destination_branch=message.destination_branch,
+                    branch_diff=branch_diff,
+                )
+            },
         )
 
     if message.check_type in [CheckType.ALL, CheckType.TEST]:
@@ -182,71 +185,6 @@ async def pipeline(message: messages.RequestProposedChangePipeline, service: Inf
     for event in events:
         event.assign_meta(parent=message)
         await service.send(message=event)
-
-
-@flow(
-    name="proposed-changed-schema-integrity",
-    flow_run_name="Got a request to process schema integrity defined in proposed_change: {message.proposed_change}",
-)
-async def schema_integrity(
-    message: messages.RequestProposedChangeSchemaIntegrity,
-    service: InfrahubServices,  # pylint: disable=unused-argument
-) -> None:
-    # For now, we retrieve the latest schema for each branch from the registry
-    # In the future it would be good to generate the object SchemaUpdateValidationResult from message.branch_diff
-    source_schema = registry.schema.get_schema_branch(name=message.source_branch).duplicate()
-    dest_schema = registry.schema.get_schema_branch(name=message.destination_branch).duplicate()
-
-    candidate_schema = dest_schema.duplicate()
-    candidate_schema.update(schema=source_schema)
-    validation_result = dest_schema.validate_update(other=candidate_schema)
-
-    constraints_from_data_diff = await _get_proposed_change_schema_integrity_constraints(
-        message=message, schema=candidate_schema
-    )
-    constraints_from_schema_diff = validation_result.constraints
-    constraints = set(constraints_from_data_diff + constraints_from_schema_diff)
-
-    if not constraints:
-        return
-
-    # ----------------------------------------------------------
-    # Validate if the new schema is valid with the content of the database
-    # ----------------------------------------------------------
-    source_branch = registry.get_branch_from_registry(branch=message.source_branch)
-    _, responses = await schema_validators_checker(
-        branch=source_branch, schema=candidate_schema, constraints=list(constraints), service=service
-    )
-
-    # TODO we need to report a failure if an error happened during the execution of a validator
-    conflicts: list[SchemaConflict] = []
-    for response in responses:
-        for violation in response.data.violations:
-            conflicts.append(
-                SchemaConflict(
-                    name=response.data.schema_path.get_path(),
-                    type=response.data.constraint_name,
-                    kind=violation.node_kind,
-                    id=violation.node_id,
-                    path=response.data.schema_path.get_path(),
-                    value=violation.message,
-                    branch="placeholder",
-                )
-            )
-
-    if not conflicts:
-        return
-
-    async with service.database.start_transaction() as db:
-        object_conflict_validator_recorder = ObjectConflictValidatorRecorder(
-            db=db,
-            validator_kind=InfrahubKind.SCHEMAVALIDATOR,
-            validator_label="Schema Integrity",
-            check_schema_kind=InfrahubKind.SCHEMACHECK,
-        )
-        await object_conflict_validator_recorder.record_conflicts(
-            proposed_change_id=message.proposed_change, conflicts=conflicts
-        )
 
 
 @flow(name="proposed-changed-repository-check")
@@ -725,27 +663,3 @@ async def _populate_subscribers(branch_diff: ProposedChangeBranchDiff, service: 
             branch_diff.subscribers.append(
                 ProposedChangeSubscriber(subscriber_id=subscriber["node"]["id"], kind=subscriber["node"]["__typename"])
             )
-
-
-async def _get_proposed_change_schema_integrity_constraints(
-    message: messages.RequestProposedChangeSchemaIntegrity, schema: SchemaBranch
-) -> list[SchemaUpdateConstraintInfo]:
-    node_diff_field_summary_map: dict[str, NodeDiffFieldSummary] = {}
-    for node_diff in message.branch_diff.diff_summary:
-        node_kind = node_diff["kind"]
-        if node_kind not in node_diff_field_summary_map:
-            node_diff_field_summary_map[node_kind] = NodeDiffFieldSummary(kind=node_kind)
-        field_summary = node_diff_field_summary_map[node_kind]
-        for element in node_diff["elements"]:
-            element_name = element["name"]
-            element_type = element["element_type"]
-            if element_type.lower() in (
-                DiffElementType.RELATIONSHIP_MANY.value.lower(),
-                DiffElementType.RELATIONSHIP_ONE.value.lower(),
-            ):
-                field_summary.relationship_names.add(element_name)
-            elif element_type.lower() in (DiffElementType.ATTRIBUTE.value.lower(),):
-                field_summary.attribute_names.add(element_name)
-
-    determiner = ConstraintValidatorDeterminer(schema_branch=schema)
-    return await determiner.get_constraints(node_diffs=list(node_diff_field_summary_map.values()))

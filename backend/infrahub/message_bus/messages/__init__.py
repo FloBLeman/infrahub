@@ -18,7 +18,6 @@ from .git_repository_connectivity import GitRepositoryConnectivity
 from .proposed_change.request_proposedchange_refreshartifacts import RequestProposedChangeRefreshArtifacts
 from .proposed_change.request_proposedchange_repositorychecks import RequestProposedChangeRepositoryChecks
 from .proposed_change.request_proposedchange_runtests import RequestProposedChangeRunTests
-from .proposed_change.request_proposedchange_schemaintegrity import RequestProposedChangeSchemaIntegrity
 from .refresh_git_fetch import RefreshGitFetch
 from .refresh_registry_branches import RefreshRegistryBranches
 from .refresh_registry_rebasedbranch import RefreshRegistryRebasedBranch
@@ -60,7 +59,6 @@ MESSAGE_MAP: dict[str, type[InfrahubMessage]] = {
     "request.proposed_change.pipeline": RequestProposedChangePipeline,
     "request.proposed_change.refresh_artifacts": RequestProposedChangeRefreshArtifacts,
     "request.proposed_change.repository_checks": RequestProposedChangeRepositoryChecks,
-    "request.proposed_change.schema_integrity": RequestProposedChangeSchemaIntegrity,
     "request.proposed_change.run_tests": RequestProposedChangeRunTests,
     "request.repository.checks": RequestRepositoryChecks,
     "request.repository.user_checks": RequestRepositoryUserChecks,
