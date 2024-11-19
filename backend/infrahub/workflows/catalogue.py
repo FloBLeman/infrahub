@@ -232,6 +232,20 @@ PROCESS_COMPUTED_MACRO = WorkflowDefinition(
     function="process_jinja2",
 )
 
+TRIGGER_UPDATE_JINJA_COMPUTED_ATTRIBUTES = WorkflowDefinition(
+    name="trigger_update_jinja2_computed_attributes",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.computed_attribute.tasks",
+    function="trigger_update_jinja2_computed_attributes",
+)
+
+TRIGGER_UPDATE_PYTHON_COMPUTED_ATTRIBUTES = WorkflowDefinition(
+    name="trigger_update_python_computed_attributes",
+    type=WorkflowType.INTERNAL,
+    module="infrahub.computed_attribute.tasks",
+    function="trigger_update_python_computed_attributes",
+)
+
 COMPUTED_ATTRIBUTE_SETUP = WorkflowDefinition(
     name="computed-attribute-setup",
     type=WorkflowType.INTERNAL,
@@ -354,6 +368,8 @@ workflows = [
     TRANSFORM_PYTHON_RENDER,
     TRIGGER_ARTIFACT_DEFINITION_GENERATE,
     TRIGGER_GENERATOR_DEFINITION_RUN,
+    TRIGGER_UPDATE_JINJA_COMPUTED_ATTRIBUTES,
+    TRIGGER_UPDATE_PYTHON_COMPUTED_ATTRIBUTES,
     UPDATE_COMPUTED_ATTRIBUTE_TRANSFORM,
     UPDATE_GRAPHQL_QUERY_GROUP,
     WEBHOOK_SEND,
