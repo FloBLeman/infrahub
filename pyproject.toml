@@ -393,30 +393,6 @@ module = "infrahub.message_bus.operations.schema.validator"
 ignore_errors = true
 
 [[tool.mypy.overrides]]
-module = "infrahub.test_data.dataset03"
-ignore_errors = true
-
-[[tool.mypy.overrides]]
-module = "infrahub.test_data.dataset04"
-ignore_errors = true
-
-[[tool.mypy.overrides]]
-module = "infrahub.test_data.gen_connected_nodes"
-ignore_errors = true
-
-[[tool.mypy.overrides]]
-module = "infrahub.test_data.gen_isolated_node"
-ignore_errors = true
-
-[[tool.mypy.overrides]]
-module = "infrahub.test_data.gen_node_profile_node"
-ignore_errors = true
-
-[[tool.mypy.overrides]]
-module = "infrahub.test_data.shared"
-ignore_errors = true
-
-[[tool.mypy.overrides]]
 module = "infrahub.trace"
 ignore_errors = true
 
